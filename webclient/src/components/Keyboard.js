@@ -70,6 +70,10 @@ const Keyboard = () => {
                         dispatch({type: actions.UPDATE_USER, payload: data.payload});
                         return dispatch({type: actions.RECEIVE_DATA});
                     }
+                    case 'friends_update': {
+                        dispatch({type: actions.UPDATE_FRIENDS, payload: data.payload});
+                        return dispatch({type: actions.RECEIVE_DATA});
+                    }
                     // Catch-all for when the app needs to 'listen' to the data.dataType globally, such as 'friend_search_result'
                     default: return dispatch({type: actions.RECEIVE_DATA, payload: data});;
                 }

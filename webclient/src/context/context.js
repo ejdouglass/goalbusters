@@ -5,6 +5,7 @@ export const actions = {
     DISMISS_ALERT: 'dismiss_alert',
     LOAD_USER: 'load_user',
     UPDATE_USER: 'update_user',
+    UPDATE_FRIENDS: 'update_friends',
     LOGOUT: 'logout',
     SEND_DATA: 'send_data',
     RECEIVE_DATA: 'receive_data',
@@ -33,8 +34,13 @@ export const Reducer = (state, action) => {
             return {...state, ...action.payload};
         }
         case (actions.UPDATE_USER): {
-            console.log(`Updating client-side user data.`);
-            return {...state, ...action.payload};
+            console.log(`Updating client-side user data: ${JSON.stringify(action.payload)}`);
+            return {...action.payload};
+        }
+        case (actions.UPDATE_FRIENDS): {
+            console.log(`Friends list has been updated in some manner.`);
+            // setting it up so that action.payload is the entire friends Obj from backend
+            return {...state, friends: action.payload};
         }
         case (actions.LOGOUT): {
             return initialState;

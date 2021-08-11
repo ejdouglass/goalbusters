@@ -22,7 +22,7 @@ import gnomeSVG from '../assets/avatars/gnome.svg';
 import elfSVG from '../assets/avatars/elf.svg';
 import princessSVG from '../assets/avatars/princess.svg';
 import fairySVG from '../assets/avatars/fairy.svg';
-import { HomePageBackgroundContainer, HomePageContainer, HomePageSidebar, HomePageSidebarLogoContainer, HomePageSidebarItemContainer, HomePageContent, HomePageHeaderBar, HomePageTitle, HomePageIconContainer, MessageIcon, UserIcon, HomePageBody, DashboardDate, GoalsPageButtonContainer, GoalListPageButton, DashboardRowOne, DashboardRowTwo, DashboardRowThree, DashboardNarrowContainer, DashboardWideContainer, GoalsListContainer, GoalCard, SideBarIcon, GoalSearchInput, GoalInputContainer, GoalInputLabel, GoalButtonsContainer, GoalButton, GroupInfoInput, UserModal, UserModalButton, DailyProgressContainer, DailyProgressDayLabel, SideBarText, DashboardGoalButton, GroupInfoInputContainer, FriendCardContainer } from '../styled/styled';
+import { HomePageBackgroundContainer, HomePageContainer, HomePageSidebar, HomePageSidebarLogoContainer, HomePageSidebarItemContainer, HomePageContent, HomePageHeaderBar, HomePageTitle, HomePageIconContainer, MessageIcon, UserIcon, HomePageBody, DashboardDate, GoalsPageButtonContainer, GoalListPageButton, DashboardRowOne, DashboardRowTwo, DashboardRowThree, DashboardNarrowContainer, DashboardWideContainer, GoalsListContainer, GoalCard, SideBarIcon, GoalSearchInput, GoalInputContainer, GoalInputLabel, GoalButtonsContainer, GoalButton, GroupInfoInput, UserModal, UserModalButton, DailyProgressContainer, DailyProgressDayLabel, SideBarText, DashboardGoalButton, GroupInfoInputContainer, FriendCardContainer, NewFriendsBadge } from '../styled/styled';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -92,6 +92,8 @@ const HomePage = () => {
     const [todaysGoals, setTodaysGoals] = useState([]);
     const [allGoalsArray, setAllGoalsArray] = useState([]);
     const [goalToBust, setGoalToBust] = useState();
+    const [goalToCompare, setGoalToCompare] = useState({});
+    const [newFriendRequests, setNewFriendRequests] = useState(0);
     // ... just realized the above is ALL goals, not today's goals only; whoops.
     const [newGoal, setNewGoal] = useState({
         name: '',
@@ -112,8 +114,9 @@ const HomePage = () => {
     const [goalPage, setGoalPage] = useState(1);
 
     function bustGoal(goal) {
+        setGoalToCompare(goal);
         setGoalToBust(goal);
-        console.log(JSON.stringify(goal))
+        console.log('Time to bust! ' + JSON.stringify(goal))
         setSidebarSelection('bustGoal');
     }
 
@@ -124,17 +127,28 @@ const HomePage = () => {
         // dailyTargetUnitsDone: 0 (by default)
         // dailyTargetNumber: ... more than 0 :P
         // notes: STRING
-        // events: [timestamp: ??, agent: username, action: '']
+        // events: [{timestamp: ??, agent: username, action: ''}]
         // groupRule: solo/group
+
+        // Notes is a string; let's consider it a 'temporary' variable that just exists so it can scoot into the EVENTS array
+        //  ... 
+
+        // 'Notes' is currently a one-off record, but can be ultimately modified to be sequential updates over the lifespan of a goal for a given day
+        setGoalToCompare({});
+        if (goalToBust?.notes === goalToCompare?.notes && goalToBust?.dailyTargetUnitsDone === goalToCompare?.dailyTargetUnitsDone) return setSidebarSelection('dashboard');
+
+        // now that we have a goalToCompare sitting up there, we can actually add details to events, pointing out incremental progress
         let finalizedGoalObj = {...goalToBust};
         let rightNow = new Date();
-        let actionString = ` recorded ${finalizedGoalObj.dailyTargetUnitsDone} ${finalizedGoalObj.dailyTargetUnits} completed`;
-        if (finalizedGoalObj.dailyTargetUnitsDone > finalizedGoalObj.dailyTargetNumber) finalizedGoalObj.complete = true;
-        actionString += finalizedGoalObj.complete ? `, finishing this goal for the day!` : `.`;
+        let actionString = ` recorded ${finalizedGoalObj.dailyTargetUnitsDone} ${finalizedGoalObj.dailyTargetUnits} completed for ${finalizedGoalObj.name}`;
+        finalizedGoalObj.complete = finalizedGoalObj.dailyTargetUnitsDone >= finalizedGoalObj.dailyTargetNumber ? true : false;
+        actionString += finalizedGoalObj.complete ? `, finishing this project for the day!` : `.`;
         let eventObj = {timestamp: rightNow, agent: state.username, action: actionString};
+        setGoalToBust({});
         
         dispatch({type: actions.SEND_DATA, payload: {requestType: 'update_daily_goal', finalizedGoalObj: finalizedGoalObj, eventObj: eventObj}});
-        // setSidebarSelection('dashboard');
+        setSidebarSelection('dashboard');
+        // idea: can have a 'whatDo' updater on server, so when the response is sent, it also pushes us back to the dashboard, rather than just going
         
 
     }
@@ -233,13 +247,13 @@ const HomePage = () => {
                     ))}
                 </>            
         */
-        let ticker = state?.history[calcDayKey()]?.goals.length;
-        // for (const goalID in state.history[calcDayKey()]?.goals) {
-        //     ticker++;
-        //     if (ticker > 0) break;
-        // }
+
+        
+        // let ticker = state?.history[calcDayKey()]?.goals.length;
+ 
+        /*
         if (state.goals && !ticker) {
-            console.log(`NO TODAY GOALS FOUND, attempting to populate`)
+            // console.log(`NO TODAY GOALS FOUND, attempting to populate`)
             // condition: goals exist, history for "today" has nothin'... so let's repair that situation, slam 'em all into a 'proper' setup as per above
             // note: if we create a new 'history' to work with, it should also send off to the backend as well (UPDATE_HISTORY)
             let today = new Date().getDay();
@@ -251,8 +265,9 @@ const HomePage = () => {
             for (const goalID in state.goals) {
                 if (state.goals[goalID].weekDays[today]) {
                     // todayGoalArray.push(state.goals[goalID]);
-                    console.log(`Found a goal that belongs in TODAY'S LIST`)
+                    // console.log(`Found a goal that belongs in TODAY'S LIST`)
                     todayHistory[goalID] = {
+                        dateKey: dateKey,
                         id: goalID,
                         name: state.goals[goalID].name,
                         logo: state.goals[goalID].logo || '',
@@ -267,26 +282,61 @@ const HomePage = () => {
                     }
                 }
             }
-            // we're getting an empty object, so the below will never fire
+            
             for (const goalID in todayHistory) {
-                // if I'm not too muddled on this, it should be pushing each of "today"s goal objects into the array
                 todayGoalArray.push(todayHistory[goalID]);
-                console.log(`Today's goal array is now gaining the goal named ${todayHistory[goalID].name}`)
+                // console.log(`Today's goal array is now gaining the goal named ${todayHistory[goalID].name}`)
             }
             setTodaysGoals(todayGoalArray);
 
             // HERE: make new dispatch to update history, passing today's calcDateKey() to use and the todayHistory {} to append to that
             // we want to update history... if there's NO history at all, versus if there's no history for 'today' (either would get us here)
         }
-        if (ticker) {
-            let dateKey = calcDayKey();
-            let todayGoalArray = [];
-            for (const goalID in state.history[dateKey].goals) {
-                todayGoalArray.push(state.history[dateKey].goals[goalID]);
-            }
-            setTodaysGoals(todayGoalArray);
-        }
+        */
+        // if (ticker) {
+        //     console.log(`Previous data on today's HISTORY found! Beep-booping.`);
+        //     let dateKey = calcDayKey();
+        //     let todayGoalArray = [];
+        //     for (const goalID in state.history[dateKey].goals) {
+        //         let dailyGoalObj = {...state.history[dateKey].goals[goalID]};
+        //         if (!dailyGoalObj.dateKey) dailyGoalObj.dateKey = calcDayKey();
+        //         todayGoalArray.push(dailyGoalObj);
+        //     }
+        //     setTodaysGoals(todayGoalArray);
+        // }
+        
     }, [state.history, state.goals]);
+
+    useEffect(() => {
+        let friendLength = Object.keys(state?.friends).length || undefined;
+        if (friendLength) {
+            let newFriendRequests = 0;
+            console.log(`Friends currently looks like: ${JSON.stringify(state.friends)}`)
+            Object.keys(state.friends).forEach(friendKey => {
+                if (state.friends[friendKey].status === 'requestReceived') newFriendRequests += 1;
+            });
+            setNewFriendRequests(newFriendRequests);
+        }
+    }, [state?.friends]);
+
+    useEffect(() => {
+        // console.log(`HISTORY has CHANGED! wooOoO`)
+        // PARSING THE DATA, I think I've incorrectly pulled from history.goals.goalID versus history.goalID?
+        console.log(`HISTORY HOOK ACTIVATED. Today's new history: ${JSON.stringify(state?.history[calcDayKey()]?.goals)}`)
+        if (state?.history[calcDayKey()]?.goals) {
+            if (Object.keys(state?.history[calcDayKey()]?.goals).length > 0) {
+                let dateKey = calcDayKey();
+                let todayGoalArray = [];
+                for (const goalID in state.history[dateKey].goals) {
+                    console.log(`Adding to today the goal of ${state.history[dateKey].goals[goalID].name}, whose entirety looks like: ${JSON.stringify(state.history[dateKey].goals[goalID])}`)
+                    let dailyGoalObj = {...state.history[dateKey].goals[goalID]};
+                    if (!dailyGoalObj.dateKey) dailyGoalObj.dateKey = calcDayKey();
+                    todayGoalArray.push(dailyGoalObj);
+                }
+                setTodaysGoals(todayGoalArray);
+            }
+        }
+    }, [state.history]);
 
     useEffect(() => {
         // NOW THE GOALS SHALL BE TODAYS GOALS.
@@ -348,13 +398,33 @@ const HomePage = () => {
 
     useEffect(() => {
         // NOTE: token loading on page refresh caused odd effects; adding this side effect listener makes sure this doesn't cause 'empty friends loading'
-        // Goals (list on their own page) seems to do alright, at any rate
-        
-        let friendsArray = [];
-        for (const username in state?.friends) {
-            friendsArray.push(state.friends[username]);
+        if (friendSearch) {
+            let visibleFriendsArray = [];
+            if (viewMyFriends) {
+                for (const username in state?.friends) {
+                    visibleFriendsArray.push(state.friends[username]);
+                }
+                if (friendSearch) {
+                    visibleFriendsArray = visibleFriendsArray.filter(friend => friend.username.toLowerCase().indexOf(friendSearch) !== -1);
+                }
+                return setFriendsList(visibleFriendsArray);
+            }
+            if (!viewMyFriends) {
+                dispatch({type: actions.SEND_DATA, payload: {requestType: 'search_new_friend', searchString: friendSearch}});
+            }
         }
-        setFriendsList(friendsArray);
+        if (!friendSearch && viewMyFriends) {
+            let friendsArray = [];
+            for (const username in state?.friends) {
+                friendsArray.push(state.friends[username]);
+            }
+            setFriendsList(friendsArray);
+        }
+        // let friendsArray = [];
+        // for (const username in state?.friends) {
+        //     friendsArray.push(state.friends[username]);
+        // }
+        // setFriendsList(friendsArray);
     }, [state.friends]);
 
     useEffect(() => {
@@ -382,8 +452,12 @@ const HomePage = () => {
                     </HomePageSidebarItemContainer>
 
                     <HomePageSidebarItemContainer selected={sidebarSelection === 'friends'} onClick={() => setSidebarSelection('friends')}>
-                        <SideBarIcon style={{display: 'flex'}} src={friendsSVG} width="25" height="25" viewed={sidebarSelection === 'friends'} />
-                        <SideBarText>Friends</SideBarText>
+                        <div style={{position: 'relative'}}>
+                            <NewFriendsBadge friendRequests={newFriendRequests}>{newFriendRequests}</NewFriendsBadge>
+                            <SideBarIcon style={{display: 'flex'}} src={friendsSVG} width="25" height="25" viewed={sidebarSelection === 'friends'} />
+                        </div>
+                        <SideBarText style={{position: 'relative'}}>Friends</SideBarText>
+
                     </HomePageSidebarItemContainer>
 
                     <HomePageSidebarItemContainer selected={sidebarSelection === 'goals' || sidebarSelection === 'createGoal'} onClick={() => setSidebarSelection('goals')}>
@@ -446,24 +520,30 @@ const HomePage = () => {
                                         ))}
                                         {todaysGoals.length === 0 && (
                                             <div>
-                                                <p>You have no goals for today. Take a break!</p>
+                                                {state?.goals?.length ? (
+                                                    <p>You have no goals for today. Take a break or define some new goals!</p>
+                                                ) : (
+                                                    <p>You haven't defined any goals yet! Pop over to "My Goals" on the left to get started.</p>
+                                                )}
                                             </div>
                                         )}
                                     </DashboardNarrowContainer>
 
                                     {/* Notifications for today */}
-                                    <DashboardWideContainer style={{flexDirection: 'column'}}>
+                                    <DashboardWideContainer style={{flexDirection: 'column', overflow: 'scroll'}}>
                                         <DashboardDate>Today's Notifications</DashboardDate>
-                                        {state?.history[calcDayKey()] ? (
+                                        {state?.history[calcDayKey()]?.events?.length ? (
                                             <>
                                             {/* Awesome! Now to create a separate 'timestamp' vs 'text' below to keep time-length from creating jagged formatting */}
+                                            {/* Also, we want to auto-scroll to the latest news here, so start that adventure:
+                                            https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up */}
                                             {state.history[calcDayKey()].events.map((historyItem, index) => (
-                                                <div key={index} style={{marginBottom: '0.5rem'}}>{historyItem.timestamp}: {historyItem.agent === state?.username ? 'You' : historyItem.agent} {historyItem.action}</div>
+                                                <div key={index} style={{marginBottom: '0.5rem'}}>{calcTimestamp(new Date(historyItem.timestamp))}: {historyItem.agent === state?.username ? 'You' : historyItem.agent} {historyItem.action}</div>
                                             ))}
                                             </>
                                         ) : (
                                             <>
-                                                <p>Nothing happened for today yet</p>
+                                                <p>Nothing happened for today yet. Pretty quiet so far!</p>
                                             </>
                                             
                                         )}
@@ -529,27 +609,35 @@ const HomePage = () => {
                         
                         {/* BGTAB */}
                         {sidebarSelection === 'bustGoal' && (
-                            <div style={{width: '100%', height: 'auto', overflow: 'scroll', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                                <DashboardRowOne style={{justifyContent: 'space-around', height: '75px'}}>
-                                    <DashboardNarrowContainer style={{justifyContent: 'space-around'}}>
-                                        <div style={{display: 'flex'}}>
-
+                            <form onSubmit={handleGoalUpdate} style={{width: '100%', height: 'auto', overflow: 'scroll', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                <DashboardRowOne style={{display: 'flex', justifyContent: 'space-around', height: '100px'}}>
+                                    <DashboardNarrowContainer style={{justifyContent: 'space-around', alignItems: 'center'}}>
+                                        <div style={{display: 'flex', fontSize: 'calc(2rem + 1vw)'}}>
                                             {goalToBust?.name}
                                         </div>
                                     </DashboardNarrowContainer>
                                 </DashboardRowOne>
                                 
-                                <GoalsListContainer>
+                                <GoalsListContainer style={{flexDirection: 'column', alignItems: 'flex-start', padding: '2rem'}}>
                                     <GoalInputContainer>
                                         <GoalInputLabel>Today's Progress:</GoalInputLabel>
-                                        <GroupInfoInput type='number' style={{width: '50px', marginRight: '1rem'}} value={goalToBust.dailyTargetUnitsDone} onChange={e => setGoalToBust({...goalToBust, dailyTargetUnitsDone: e.target.value})}></GroupInfoInput>
-                                        / {goalToBust.dailyTargetNumber} {goalToBust.dailyTargetUnits}
+                                        <GroupInfoInput type='number' autoFocus={true} style={{width: '50px', marginRight: '1rem'}} value={goalToBust.dailyTargetUnitsDone} onChange={e => setGoalToBust({...goalToBust, dailyTargetUnitsDone: e.target.value})}></GroupInfoInput>
+                                        / {goalToBust.dailyTargetNumber} {goalToBust.dailyTargetUnits === 'reps' ? 'times' : goalToBust.dailyTargetUnits}
                                     </GoalInputContainer>
 
-                                    <GoalButton onClick={handleGoalUpdate}>UPDATE!</GoalButton>
+                                    <GoalInputContainer style={{width: '100%'}}>
+                                        <GoalInputLabel>Notes</GoalInputLabel>
+                                        <GroupInfoInput type='text' style={{width: '70%'}} value={goalToBust?.notes} onChange={e => setGoalToBust({...goalToBust, notes: e.target.value})}></GroupInfoInput>
+                                    </GoalInputContainer>
+
+                                    
+
+                                    <GoalButton style={{marginLeft: '1rem'}} onClick={handleGoalUpdate}>{(goalToBust?.notes === goalToCompare?.notes && goalToBust?.dailyTargetUnitsDone === goalToCompare?.dailyTargetUnitsDone) ? `Back` : `UPDATE!`}</GoalButton>
                                 </GoalsListContainer>
+
+                                {/* <div>{goalToBust.dateKey || `No date key detected`}</div> */}
                                 
-                            </div>
+                            </form>
                         )}
 
                         {/* 
@@ -558,7 +646,7 @@ const HomePage = () => {
                             -- BOTTOM AREA: rules, inputs to update with, UPDATE! button
                                 ... UPDATE! will slide on back to Dashboard proper... after sending off an update to backend, and back to client to update
 
-                            So how should user input? Probably pretty much the same as NGTAB's methods.
+                            So how should user input? Probably pretty much the same as newGoalTab's methods.
                             -- number input that pops up buttons
                             -- 
 
@@ -583,16 +671,19 @@ const HomePage = () => {
                         {/* GTAB */}
                         {sidebarSelection === 'goals' && (
                             <div style={{width: '100%', height: 'auto', overflow: 'scroll', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
-                                <DashboardRowOne style={{justifyContent: 'space-around', height: '75px'}}>
-                                    <DashboardNarrowContainer style={{justifyContent: 'space-around'}}>
+                                <DashboardRowOne style={{justifyContent: 'space-around', flexWrap: 'wrap', alignItems: 'center'}}>
+                                    <DashboardNarrowContainer style={{justifyContent: 'space-around', flexWrap: 'wrap'}}>
                                         <div style={{display: 'flex'}}>
-                                            <GoalListPageButton onClick={() => setSidebarSelection('createGoal')}>Create New Goal!</GoalListPageButton>
+                                            <GoalListPageButton style={{width: '200px', height: '100px', fontSize: 'calc(0.7rem + 0.4vw)', fontWeight: '600'}} onClick={() => setSidebarSelection('createGoal')}>Create NEW Goal Project!</GoalListPageButton>
+                                        </div>
+                                        <div style={{display: 'flex'}}>
                                             <GoalSearchInput style={{borderRadius: '1rem'}} type="input" value={goalSearch} onChange={e => setGoalSearch(e.target.value)} placeholder={`search goal names`}></GoalSearchInput>
                                         </div>
                                     </DashboardNarrowContainer>
                                 </DashboardRowOne>
                                 
                                 <GoalsListContainer>
+                                    <div style={{width: '100%', paddingLeft: '1rem', fontSize: 'calc(0.8rem + 0.3vw)', fontWeight: '600', letterSpacing: '0.7px'}}>My Goal Projects (Click to View or Edit Project Details)</div>
                                     {allGoalsArray?.slice(((goalPage - 1) * 10), ((goalPage - 1) * 10 + 10)).map((goal, index) => (
                                         <GoalCardContainer key={index} goal={goal} />
                                     ))}
@@ -644,18 +735,6 @@ const HomePage = () => {
                                         <GoalButton style={{width: '75px'}} onClick={() => setNewGoal({...newGoal, groupRule: 'group'})} selected={newGoal.groupRule === 'group'}>Group</GoalButton> 
                                     </GoalInputContainer>
 
-                                        {/* 
-                                        Currently nixed due to just mashing all the whole screen around. Add back later.
-                                        <GoalInputContainer>
-                                            <GoalInputLabel>Goal Tags</GoalInputLabel>
-                                            <GoalButton barButton leftSide>Physical</GoalButton>
-                                            <GoalButton barButton>Mental</GoalButton>
-                                            <GoalButton barButton>Personal</GoalButton>
-                                            <GoalButton barButton>Interpersonal</GoalButton>
-                                            <GoalButton barButton rightSide>Professional</GoalButton>
-                                        </GoalInputContainer> 
-                                        */}
-
                                     <GoalInputContainer>
                                         <GoalInputLabel>{newGoal.durationUnits === 'indefinite' ? `(no end date)` : `# of ${newGoal.durationUnits}`}</GoalInputLabel>
                                         <GoalButton style={{width: '5vw'}} barButton leftSide onClick={() => setNewGoal({...newGoal, durationNumber: newGoal.durationNumber > 1 ? newGoal.durationNumber - 1 : 1})}>-</GoalButton> 
@@ -670,7 +749,7 @@ const HomePage = () => {
                                         <GoalButton style={{width: '8vw'}} barButton rightSide selected={newGoal.durationUnits === 'indefinite'} onClick={() => setNewGoal({...newGoal, durationUnits: 'indefinite'})}>indefinite</GoalButton> 
                                     </GoalInputContainer>
 
-                                    <GoalInputContainer>
+                                    <GoalInputContainer style={{position: 'relative', marginBottom: '2rem'}}>
                                         <GoalInputLabel>{Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length > 0 ? `${Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length} day(s) per week` : `Choose Which Days to Pursue this Goal!`}</GoalInputLabel>
                                         <GoalButton style={{width: '6vw'}} selected={newGoal.weekDays.sun} onClick={() => setNewGoal({...newGoal, weekDays: {...newGoal.weekDays, sun: !newGoal.weekDays.sun}})} barButton leftSide>Su</GoalButton>
                                         <GoalButton style={{width: '6vw'}} selected={newGoal.weekDays.mon} onClick={() => setNewGoal({...newGoal, weekDays: {...newGoal.weekDays, mon: !newGoal.weekDays.mon}})} barButton>Mon</GoalButton>
@@ -679,6 +758,15 @@ const HomePage = () => {
                                         <GoalButton style={{width: '6vw'}} selected={newGoal.weekDays.thu} onClick={() => setNewGoal({...newGoal, weekDays: {...newGoal.weekDays, thu: !newGoal.weekDays.thu}})} barButton>Thu</GoalButton>
                                         <GoalButton style={{width: '6vw'}} selected={newGoal.weekDays.fri} onClick={() => setNewGoal({...newGoal, weekDays: {...newGoal.weekDays, fri: !newGoal.weekDays.fri}})} barButton>Fri</GoalButton>
                                         <GoalButton style={{width: '6vw'}} selected={newGoal.weekDays.sat} onClick={() => setNewGoal({...newGoal, weekDays: {...newGoal.weekDays, sat: !newGoal.weekDays.sat}})} barButton rightSide>Sat</GoalButton>
+                                        <div style={{display: 'flex', width: '100%', position: 'relative', marginTop: '1.5rem'}}>
+                                            <GoalInputLabel>Shortcut Day-Selection Buttons:</GoalInputLabel>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 7} onClick={() => setNewGoal({...newGoal, weekDays: {sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true}})} barButton>ALL THE DAYS</GoalButton>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.mon && newGoal.weekDays.wed && newGoal.weekDays.fri && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 3)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: true, tue: false, wed: true, thu: false, fri: true, sat: false}})} barButton>M-W-F</GoalButton>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.tue && newGoal.weekDays.thu && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 2)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: false, tue: true, wed: false, thu: true, fri: false, sat: false}})} barButton>Tu-Th</GoalButton>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.sat && newGoal.weekDays.sun && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 2)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: true, mon: false, tue: false, wed: false, thu: false, fri: false, sat: true}})} barButton>Weekends</GoalButton>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 0} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: false, tue: false, wed: false, thu: false, fri: false, sat: false}})} barButton>(No Days)</GoalButton>
+                                        </div>
+                                        
                                     </GoalInputContainer>
 
                                     <GoalInputContainer>
@@ -749,22 +837,31 @@ const HomePage = () => {
                             <div style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
                                 <DashboardRowOne style={{justifyContent: 'space-around', height: 'auto'}}>
-                                    <DashboardNarrowContainer style={{display: 'flex', flexWrap: 'wrap', flexDirection: 'row', justifyContent: 'center', alignContent: 'center'}}>
-                                        <div style={{display: 'flex', marginBottom: '1rem', marginRight: '3rem'}}>
-                                            <GoalButton style={{width: 'calc(150px + 2vw)'}} barButton leftSide selected={viewMyFriends} onClick={() => setViewMyFriends(true)}>My Friends</GoalButton>
-                                            <GoalButton style={{width: 'calc(150px + 2vw)'}} barButton rightSide selected={!viewMyFriends} onClick={() => setViewMyFriends(false)}>Search Friends</GoalButton>
+                                    <DashboardNarrowContainer style={{display: 'flex', flexWrap: 'wrap', flexDirection: 'column', justifyContent: 'center', alignContent: 'center'}}>
+                                        <div style={{display: 'flex', marginBottom: '1rem', justifyContent: 'space-around'}}>
+                                            <GoalButton style={{width: 'calc(100px + 3vw)'}} selected={viewMyFriends} onClick={() => setViewMyFriends(true)}>View My Buddies</GoalButton>
+                                            <GoalButton style={{width: 'calc(100px + 3vw)'}} selected={!viewMyFriends} onClick={() => setViewMyFriends(false)}>Search New Buddies</GoalButton>
                                         </div>
                                         <div style={{position: 'relative'}}>
-                                            <GroupInfoInput style={{width: '300px', height: '36px'}} value={friendSearch} onChange={e => handleFriendSearch(e.target.value)} placeholder={viewMyFriends ? `search my friends` : 'search for friends'}></GroupInfoInput>    
+                                            <GroupInfoInput style={{width: 'calc(200px + 6vw)', height: '36px'}} value={friendSearch} onChange={e => handleFriendSearch(e.target.value)} placeholder={viewMyFriends ? `search my friends` : 'search for friends'}></GroupInfoInput>    
                                         </div>
                                     </DashboardNarrowContainer>
                                 </DashboardRowOne>   
 
-                                <GoalsListContainer>
+                                <GoalsListContainer style={{minHeight: '200px', justifyContent: 'center'}}>
+                                    <h3 style={{width: '100%', margin: '0.75rem 1rem', alignSelf: 'flex-start'}}>
+                                        {viewMyFriends ? `My Goalbusting Buddies` : `Searching New Buddies`}
+                                    </h3>
                                     {friendsList.length > 0 ? (friendsList.map((friend, index) => (
                                         <FriendCard key={friend.username} index={index} state={state} dispatch={dispatch} friend={friend}></FriendCard>
                                     ))) : (
-                                        <><div>Bloop</div></>
+                                        <div style={{alignSelf: 'flex-start'}}>
+                                            
+                                            {viewMyFriends && <div style={{fontSize: 'calc(0.9rem + 0.4vw)', marginLeft: '1rem'}}>You haven't connected with any Goalbuster friends yet. Try the Search Friends tab above!</div>}
+                                            {(!viewMyFriends && friendSearch) && <div style={{fontSize: 'calc(0.9rem + 0.4vw)', marginLeft: '1rem'}}>No users found matching that criteria.</div>}
+                                            {(!viewMyFriends && !friendSearch) && <div style={{fontSize: 'calc(0.9rem + 0.4vw)', marginLeft: '1rem'}}>Enter any part of a username above to search for new friends to Goalbust with!</div>}
+                                            
+                                        </div>
                                     )}
                                     {/* {Object.keys(state?.friends).length > 0 ? (
                                         <>
@@ -828,10 +925,34 @@ const HomePage = () => {
 
 
 const GoalCardContainer = ({ goal }) => {
-    // edit GoalsListContainer to support dynamic size restructuring!
+    /*
+        OK! Let's format these bad boys and girls and genderless components!
+
+        -- goal.name, front-and-center(ed?)
+        -- solo-or-group
+        -- micro days indicator would be cool
+
+        -- icon? ... eh, not yet
+        -- maybe later on, 'include old/completed goals'
+        -- or even 'include goals for THE FUUUUTURE' ... in the future
+    */
     return (
         <GoalCard onClick={() => alert(`You booped ${goal.name}!`)}>
-            {goal.name}
+            <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box'}}>
+                <img style={{width: '20%'}} src={goal.groupRule === 'solo' ? soloSVG : groupSVG} />
+                <div style={{display: 'flex'}}>{goal.name}</div>
+                <div style={{display: 'flex', flexDirection: 'row'}}>
+                    <div style={{color: goal.weekDays.sun ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Su</div>
+                    <div style={{color: goal.weekDays.mon ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Mo</div>
+                    <div style={{color: goal.weekDays.tue ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Tu</div>
+                    <div style={{color: goal.weekDays.wed ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>We</div>
+                    <div style={{color: goal.weekDays.thu ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Th</div>
+                    <div style={{color: goal.weekDays.fri ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Fr</div>
+                    <div style={{color: goal.weekDays.sat ? 'hsl(260,80%,30%)' : 'hsl(260,80%,75%)', margin: '0 0.2rem'}}>Sa</div>
+                </div>
+            </div>
+            
+            
         </GoalCard>
     )
 }
@@ -847,13 +968,17 @@ const WeeklyBar = ({ state, dispatch }) => {
         {name: 'FRI'},
         {name: 'SAT'},
     ]);
+
     /*
-        OK! Time to have "this week" show up.
+        Let's see, let's add some context and usefulness to this bar.
+        -- CURRENT AND PRIOR DAYS: at-a-glance x/y goals done, visual indicator of day done or not done
+        -- UPCOMING DAYS: # of goals for that day projected
+        ... all this should be initially loaded, and then can be changed when state.goals or state.history changes
+        -- dependent on state.history[todaysKey].goals[goalID].complete = t/f
 
-        Can refactor the below to be a MAP of the weekly array generated above.
+        ... this does sort of mean creating a pseudo-history for upcoming days of the current week
 
-        STEP 1 - figure out what day of the week 'today' is
-    
+        This logic can be repackaged for the history page, creating bars upon bars!
     */
 
     useEffect(() => {
@@ -882,13 +1007,6 @@ const WeeklyBar = ({ state, dispatch }) => {
                 <div></div>
             </DailyProgressContainer>
         ))}
-        {/* <DailyProgressContainer><DailyProgressDayLabel>SUN</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>MON</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>TUE</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>WED</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>THU</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>FRI</DailyProgressDayLabel></DailyProgressContainer>
-        <DailyProgressContainer><DailyProgressDayLabel>SAT</DailyProgressDayLabel></DailyProgressContainer> */}
         </>
     )
 }
@@ -905,15 +1023,12 @@ const FriendCard = ({ index, state, dispatch, friend }) => {
     function handleFriendBoop() {
         // This card exists for all states of friends (searched potential friend, requestSent, requestReceived, friended)
         if (state?.friends[friend.username] === undefined) {
-            // friend isn't found at all; assuming no request received or sent, so we're sending a request
             dispatch({type: actions.SEND_DATA, payload: {requestType: 'request_friend', target: friend.username}});
         }
         if (state?.friends[friend.username]?.status === 'requestReceived') {
-            // alert(`Oh, you want to add this friend! Adorable!`)
             dispatch({type: actions.SEND_DATA, payload: {requestType: 'accept_friend', target: friend.username}});
         }
         if (state?.friends[friend.username]?.status === 'friended') {
-            // alert(`Oh, you want to add this friend! Adorable!`)
             dispatch({type: actions.SEND_DATA, payload: {requestType: 'remove_friend', target: friend.username}});
         }
     }
@@ -943,7 +1058,7 @@ const FriendCard = ({ index, state, dispatch, friend }) => {
                 <img src={friend.icon} style={{width: '50px'}} />
                 <div style={{display: 'flex', flexDirection: 'column'}}>
                     <div>{friend.username}</div>
-                    <div>{friendSubtext[state?.friends[friend.username]?.status] || 'Stranger Danger'}</div>
+                    <div style={{fontSize: '0.7rem', color: 'hsl(260,0%,50%)'}}>{friendSubtext[state?.friends[friend.username]?.status] || 'Stranger Danger'}</div>
                 </div>
             </div>
 

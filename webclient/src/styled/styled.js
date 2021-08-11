@@ -5,13 +5,28 @@ import styled, { keyframes, css } from 'styled-components';
 const sneakIn = keyframes`
     from {
         transform: translate(0, -1rem);
-        opacity: 0;
+        // opacity: 0;
     }
     to {
         transform: translate(0, 0);
-        opacity: 0.8;
+        // opacity: 0.8;
     }
 `
+
+const slowDissolve = keyframes`
+    0% {
+        opacity: 0.8;
+    }
+    60% {
+        opacity: 0.7;
+    }
+    90% {
+        opacity: 0.4;
+    }
+    100% {
+        opacity: 0;
+    }
+`;
 
 const size = {
     xs: '320px',
@@ -174,7 +189,9 @@ export const AlertContainer = styled.div`
     padding: 1rem;
     justify-content: center;
     align-items: center;
-    animation: ${sneakIn} 0.25s linear;
+    animation: ${sneakIn} 0.25s linear forwards,
+    ${slowDissolve} ${props => `${props.duration}s`} linear forwards;
+    // animation-fill-mode: forwards, forwards;
     ${props => props.offset && css`
         bottom: calc(1.5rem + ${props.offset * 125}px);
     `}
@@ -319,6 +336,8 @@ export const HomePageSidebarLogoContainer = styled.div`
 
 export const HomePageSidebarItemContainer = styled.div`
     display: flex;
+    // position: relative;
+    // z-index: 0;
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
@@ -498,7 +517,7 @@ export const DashboardWideContainer = styled(DashboardNarrowContainer)`
 export const GoalsListContainer = styled.div`
     display: flex;
     flex-direction: row;
-    justify-content: space-around;
+    justify-content: flex-start;
     align-items: center;
     // align-content: center;
     flex-wrap: wrap;
@@ -519,12 +538,15 @@ export const GoalCard = styled.div`
     align-items: center;
     box-sizing: border-box;
     font-size: calc(0.5rem + 0.5vw);
-    margin: calc(0.5rem + 0.5vw) calc(0.5rem + 0.5vw) 0 0;
+    margin: calc(0.5rem + 0.5vw) calc(0.5rem + 0.5vw);
     border-radius: 1.5rem;
     width: calc(40px + 10vw);
-    height: calc(40px + 10vw);
+    height: calc(20px + 5vw);
     background-color: hsl(260, 90%, 90%);
     border: 1px solid hsl(260, 80%, 90%);
+    &:hover {
+        border: 2px solid hsl(260, 80%, 40%);
+    }
 `;
 
 export const SideBarIcon = styled.img`
@@ -693,9 +715,29 @@ export const FriendCardContainer = styled.div`
     border: 1px solid hsl(260,80%,40%);
     border-radius: 1rem;
     padding: 1rem;
-    margin-bottom: 1rem;
+    margin: 1rem;
     width: 200px;
     height: 200px;
+`;
+
+export const NewFriendsBadge = styled.div`
+    display: flex;
+    box-sizing: border-box;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    background-color: red;
+    color: white;
+    left: -15px;
+    bottom: 15px;
+    z-index: 2;
+    width: 0;
+    overflow: hidden;
+    border-radius: 50px;
+    ${props => props.friendRequests && css`
+        width: 25px;
+        height: 25px;
+    `}
 `;
 
 

@@ -33,6 +33,18 @@ function generateRandomID() {
     return dateSeed.getMonth() + '' + dateSeed.getDate() + '' + dateSeed.getHours() + '' + dateSeed.getMinutes() + '' + dateSeed.getSeconds() + '' + randomSeed;
 }
 
+function dayNumberToWord(dayNum) {
+    switch (dayNum) {
+        case 0: return 'Sunday';
+        case 1: return 'Monday';
+        case 2: return 'Tuesday';
+        case 3: return 'Wednesday';
+        case 4: return 'Thursday';
+        case 5: return 'Friday';
+        case 6: return 'Saturday';
+    }
+}
+
 function calcDayKey(date) {
     // Returns MM/DD/YYYY, adding a leading '0' where necessary, i.e. 03/07/2021 ; assumes 'today' if no specific date is passed as param
     let dateToKey = date ? date : new Date();
@@ -86,6 +98,9 @@ function saveUser(user) {
         .catch(err => {
             console.log(`We encountered an error saving the user whilst adding a new goal: ${err}.`);
         });
+    
+    const targetArrayIndex = allUsers.findIndex(allUserEntry => allUserEntry.username === user.username);
+    allUsers[targetArrayIndex] = user;
 }
 
 // HMMM. io.to(roomName).emit(...) works in all cases. socket.to(roomName).emit does NOT. Can maybe just socket.emit for individual stuff, io.to(roomName) for specifics?
@@ -98,6 +113,47 @@ io.on('connection', (socket) => {
             loggedInUsers[user.username] = user;
         }
         thisUser = {...user};
+
+        let dateKey = calcDayKey();
+        if (thisUser.history[dateKey] === undefined) thisUser.history[dateKey] = {goals: {}, events: []};
+        console.log(`${thisUser.username} is logging back onto their socket`)
+        if (Object.keys(thisUser.history[dateKey].goals).length === 0 && Object.keys(thisUser.goals).length > 0) {
+            console.log(`User has no daily goals, but has goals defined, so attempting to update today's history goals for them`)
+            let today = new Date().getDay();
+        
+            let todayHistory = {};
+            let todayGoalArray = [];
+            today = dayNumberToWord(today).slice(0, 3);
+            today = today[0].toLowerCase() + today.slice(1);
+            for (const goalID in thisUser.goals) {
+                if (thisUser.goals[goalID].weekDays[today]) {
+                    todayHistory[goalID] = {
+                        dateKey: dateKey,
+                        id: goalID,
+                        name: thisUser.goals[goalID].name,
+                        logo: thisUser.goals[goalID].logo || '',
+                        groupRule: thisUser.goals[goalID].groupRule,
+                        activityName: thisUser.goals[goalID].activityName,
+                        dailyTargetUnits: thisUser.goals[goalID].dailyTargetUnits,
+                        dailyTargetUnitsDone: 0,
+                        dailyTargetNumber: thisUser.goals[goalID].dailyTargetNumber,
+                        complete: false,
+                        notes: '',
+                        events: []
+                    }
+                }
+            }
+
+            // so todayHistory picks up all relevant goals, and looks like todayHistory = {ID: {goal}, ID2: {goal}}
+            // todayHistory is essentially just thisUser.history[TODAY] = {goals: {...todayHistory}}
+
+            thisUser.history[dateKey].goals = {...todayHistory};
+            saveUser(thisUser);
+            // for (const goalID in todayHistory) {
+            //     todayGoalArray.push(todayHistory[goalID]);
+            // }  
+        }
+      
         // console.log(`thisUser has been defined as ${JSON.stringify(thisUser)}`);
         // socket.join(WHATEVERNEEDSJOINING)
         socket.join(thisUser.username);
@@ -122,35 +178,6 @@ io.on('connection', (socket) => {
                 console.log(`Received new goal: ${JSON.stringify(newGoal)}`);
                 console.log(`This new goal is submitted by user: ${thisUser.username}`)
                 delete newGoal.requestType;
-
-                /*
-                    ... we should be getting something like this:
-                newGoal = {
-                    name: '',
-                    description: '',
-                    groupRule: 'solo',
-                    logo: '',
-                    colorScheme: '',
-                    startDate: new Date(),
-                    durationNumber: 1,
-                    durationUnits: 'weeks',
-                    weekDays: {sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true},
-                    privacyLevel: 0,
-                    activityName: '',
-                    dailyTargetUnits: 'minutes',
-                    dailyTargetNumber: 30,
-                    weeklyCompletionTarget: 1
-                };
-                
-                where 
-                -- groupRule can be 'solo' or 'group'
-                -- startDate is a Date
-                -- durationUnits is 'weeks' or 'months' or 'indefinite'
-                -- dailyTargetUnits is 'minutes' or 'hours' or 'reps'
-                */                
-
-                // Hm. Actually. Goalnames do NOT have to be unique, do they? In that case, we can just go ahead and create each new goal, let the user(s) sort it out.
-                // ... meaning in this case that we should grab the _id for the creating user, and this will be the behind-the-scenes reference for everything
 
                 // HERE: check to make sure all required fields have been sent up, and ERROR the user otherwise with data_from_server
                 if (!newGoal.name) return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'error', message: `Failed to create new goal. Please provide a name for this Goal Project!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
@@ -196,6 +223,10 @@ io.on('connection', (socket) => {
                 
                 // console.log(`New END DATE after ${newGoal.durationNumber} ${newGoal.durationUnits} should be ${endDate}?`);
 
+                // OI MATE - we gotta consider updating history here, possibly? ... creating this goal didn't populate properly on client currently
+
+
+
                 let newlyCreatedGoal = new Goal({...newGoal});
                 newlyCreatedGoal.save()
                     .then(freshGoal => {
@@ -203,26 +234,48 @@ io.on('connection', (socket) => {
                         if (thisUser.history[todayKey] === undefined) {
                             thisUser.history[todayKey] = {goals: {}, events: []};
                         }
-                        thisUser.history[todayKey].events.push({timestamp: calcTimestamp(), agent: thisUser.username, action: `created the new Goal Project: ${freshGoal.name}!`})
+                        let miniToday = dayNumberToWord(newGoal.startDate.getDay()).toLowerCase().slice(0,3);
+                        if (newGoal.weekDays[miniToday]) {
+                            console.log(`Adding a new goal to the user's TODAY history`);
+                            thisUser.history[todayKey].goals[freshGoal._id] = {
+                                dateKey: todayKey,
+                                id: freshGoal._id,
+                                name: freshGoal.name,
+                                logo: freshGoal.logo || '',
+                                groupRule: freshGoal.groupRule || 'solo',
+                                activityName: freshGoal.activityName,
+                                dailyTargetUnits: freshGoal.dailyTargetUnits,
+                                dailyTargetUnitsDone: 0,
+                                dailyTargetNumber: freshGoal.dailyTargetNumber,
+                                complete: false,
+                                notes: '',
+                                events: []
+                            };                          
+                        }                        
+                        thisUser.history[todayKey].events.push({timestamp: new Date(), agent: thisUser.username, action: `created the new Goal Project: ${freshGoal.name}!`})
                         console.log(`Attempting to add a newly DB'd goal to the user. Its _id is: ${freshGoal._id}`);
                         thisUser.goals[freshGoal._id] = freshGoal;
                         thisUser.lastActivity = new Date();
-                        const filter = { username: thisUser.username };
-                        const update = { $set: thisUser };
-                        const options = { new: true, useFindAndModify: false };
-                        User.findOneAndUpdate(filter, update, options)
-                            .then(updatedResult => {
-                                console.log(`${thisUser.username} has been updated? Maybe? With a new goal, in this case.`);
-                                thisUser = updatedResult;
-                                thisUser.lastActivity
-                                delete thisUser.salt;
-                                delete thisUser.hash;
-                                // akshully... we should probably pass down new user history data, as well
-                                io.to(thisUser.username).emit('data_from_server', {dataType: 'goal_update', payload: {goals: {...thisUser.goals}, history: {...thisUser.history}}});
-                            })
-                            .catch(err => {
-                                console.log(`We encountered an error saving the user whilst adding a new goal: ${err}.`);
-                            });
+                        // hm, should consider setting it up as a 'chain' below in case the saving fails for some reason
+                        saveUser(thisUser);
+                        io.to(thisUser.username).emit('data_from_server', {dataType: 'goal_update', payload: {goals: {...thisUser.goals}, history: {...thisUser.history}}});
+                        // With the new saveUser, we prooobably don't need the below
+                        // const filter = { username: thisUser.username };
+                        // const update = { $set: thisUser };
+                        // const options = { new: true, useFindAndModify: false };
+                        // User.findOneAndUpdate(filter, update, options)
+                        //     .then(updatedResult => {
+                        //         console.log(`${thisUser.username} has been updated? Maybe? With a new goal, in this case.`);
+                        //         thisUser = updatedResult;
+                        //         thisUser.lastActivity
+                        //         delete thisUser.salt;
+                        //         delete thisUser.hash;
+                        //         // akshully... we should probably pass down new user history data, as well
+                        //         
+                        //     })
+                        //     .catch(err => {
+                        //         console.log(`We encountered an error saving the user whilst adding a new goal: ${err}.`);
+                        //     });
 
                         // HERE: send updated state-relevant info (may require new Context action) -- new GOAL for self should load onto Dashboard (if applicable) and Goals list
                         // UPDATE below to send... hm, probably the entire GOALS object down? Then have a context update state accordingly.
@@ -233,11 +286,26 @@ io.on('connection', (socket) => {
                         // HERE: send error info down, whoopsie-doodle
                         console.log(`Goal creation error! Which is: ${err}`);
                         return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'error', message: `Failed to create new goal.`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
-                    })             
-                    
-                
+                    })                 
                 return;
 
+            }
+            case 'update_daily_goal': {
+                const goalObj = dataFromClient.finalizedGoalObj;
+                const eventObj = dataFromClient.eventObj;
+                goalObj.events.push(eventObj);
+                console.log(`The user has entered a new goal for ${goalObj.dateKey}: ${JSON.stringify(goalObj)}`);
+                if (thisUser.history[goalObj.dateKey] === undefined) thisUser.history[goalObj.dateKey] = {goals: {}, events: []};
+                thisUser.history[goalObj.dateKey].goals[goalObj.id] = {...goalObj};
+                thisUser.history[goalObj.dateKey].events.push(eventObj);
+                saveUser(thisUser);
+                io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
+                return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `You have updated ${goalObj.name}!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
+            }
+            case 'populate_daily_goals': {
+                // should prooobably do this on the backend, not the frontend, juuuust in case
+                // but not here, obviously, since this is the client-response sxn; scoot it to login-logic
+                return;
             }
             case 'search_new_friend': {
                 const friendSearchString = dataFromClient.searchString;
@@ -246,47 +314,72 @@ io.on('connection', (socket) => {
                 return io.to(thisUser.username).emit('data_from_server', {dataType: 'friend_search_result', payload: friendSearchResult});
             }
             case 'request_friend': {
-                console.log(`Oh! ${thisUser.username} wants to be friends with ${dataFromClient.target}! How sweet!`);
+                // console.log(`Oh! ${thisUser.username} wants to be friends with ${dataFromClient.target}! How sweet!`);
                 let rightNow = new Date();
+                let dateKey = calcDayKey(rightNow);
                 const targetArrayIndex = allUsers.findIndex(user => user.username === dataFromClient.target);
                 console.log(`Haha! Found the request recipient at index ${targetArrayIndex}, who would be ${JSON.stringify(allUsers[targetArrayIndex])}`);
                 thisUser.friends[dataFromClient.target] = {username: dataFromClient.target, icon: allUsers[targetArrayIndex].icon, status: 'requestSent', timestamp: rightNow};
                 allUsers[targetArrayIndex].friends[thisUser.username] = {username: thisUser.username, icon: thisUser.icon, status: 'requestReceived', timestamp: rightNow};
+                
+                // HERE: add event notification for this
+                if (thisUser.history[dateKey] === undefined) thisUser.history[dateKey] = {goals: {}, events: []};
+                if (allUsers[targetArrayIndex].history[dateKey] === undefined) allUsers[targetArrayIndex].history[dateKey] = {goals: {}, events: []};
+                thisUser.history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` requested ${allUsers[targetArrayIndex].username} to add you as a Goalbusting Buddy!`});
+                allUsers[targetArrayIndex].history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` requested you to add them as a Goalbusting Buddy!`});
+                
                 saveUser(thisUser);
                 saveUser(allUsers[targetArrayIndex]);
 
                 // HERE: add relevant io.to for the receiving user, which will go ahead and fall on deaf ears if they're not online :P
-
+                // should enable a similar 'data push' that Keyboard should listen for
+                // can make it a 'precise' push that doesn't overwrite the entirety of state? add to context, etc.
+                // io.to(allUsers[targetArrayIndex].username).emit('data_from_server', {dataType: 'friends_update', payload: allUsers[targetArrayIndex].friends});
+                io.to(allUsers[targetArrayIndex].username).emit('data_from_server', {dataType: 'update_user', payload: allUsers[targetArrayIndex]});
+                // this currently resets the FTAB settings; can we avoid that?
                 io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
                 return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `Friend request sent to ${dataFromClient.target}!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
             }
             case 'accept_friend': {
-                console.log(`Oh! ${thisUser.username} wants to accept friendship with ${dataFromClient.target}! How delightful!`);
+                // console.log(`Oh! ${thisUser.username} wants to accept friendship with ${dataFromClient.target}! How delightful!`);
                 let rightNow = new Date();
+                let dateKey = calcDayKey(rightNow);
                 const targetArrayIndex = allUsers.findIndex(user => user.username === dataFromClient.target);
                 console.log(`Haha! Found the request recipient at index ${targetArrayIndex}, who would be ${JSON.stringify(allUsers[targetArrayIndex])}`);
                 thisUser.friends[dataFromClient.target] = {username: dataFromClient.target, icon: allUsers[targetArrayIndex].icon, status: 'friended', timestamp: rightNow};
                 allUsers[targetArrayIndex].friends[thisUser.username] = {username: thisUser.username, icon: thisUser.icon, status: 'friended', timestamp: rightNow};
+
+                // HERE: add to "event" for both parties
+                if (thisUser.history[dateKey] === undefined) thisUser.history[dateKey] = {goals: {}, events: []};
+                if (allUsers[targetArrayIndex].history[dateKey] === undefined) allUsers[targetArrayIndex].history[dateKey] = {goals: {}, events: []};
+                thisUser.history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` accepted ${allUsers[targetArrayIndex].username} as a Goalbusting Buddy!`});
+                allUsers[targetArrayIndex].history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` accepted you as a Goalbusting Buddy!`});                
+                                
                 saveUser(thisUser);
                 saveUser(allUsers[targetArrayIndex]);
 
-                // HERE: add relevant io.to for the receiving user, which will go ahead and fall on deaf ears if they're not online :P
-
+                io.to(allUsers[targetArrayIndex].username).emit('data_from_server', {dataType: 'update_user', payload: allUsers[targetArrayIndex]});
                 io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
                 return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `You are now friends with ${dataFromClient.target}!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
             }
             case 'remove_friend': {
-                console.log(`Oh! ${thisUser.username} wants to eliminate friendship with ${dataFromClient.target}! How hopefully healthy!`);
-                // let rightNow = new Date();
+                // console.log(`Oh! ${thisUser.username} wants to eliminate friendship with ${dataFromClient.target}! How hopefully healthy!`);
+                let rightNow = new Date();
+                let dateKey = calcDayKey(rightNow);
                 const targetArrayIndex = allUsers.findIndex(user => user.username === dataFromClient.target);
                 console.log(`Haha! Found the request recipient at index ${targetArrayIndex}, who would be ${JSON.stringify(allUsers[targetArrayIndex])}`);
                 thisUser.friends[dataFromClient.target] = undefined;
                 allUsers[targetArrayIndex].friends[thisUser.username] = undefined;
+
+                if (thisUser.history[dateKey] === undefined) thisUser.history[dateKey] = {goals: {}, events: []};
+                if (allUsers[targetArrayIndex].history[dateKey] === undefined) allUsers[targetArrayIndex].history[dateKey] = {goals: {}, events: []};
+                thisUser.history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` removed ${allUsers[targetArrayIndex].username} as a Goalbusting Buddy.`});
+                // allUsers[targetArrayIndex].history[dateKey].events.push({timestamp: rightNow, agent: thisUser.username, action: ` removed you as a Goalbusting Buddy.`}); // wait, we don't need to let the recipient know :P
+
                 saveUser(thisUser);
                 saveUser(allUsers[targetArrayIndex]);
 
-                // HERE: add relevant io.to for the receiving user, which will go ahead and fall on deaf ears if they're not online :P
-
+                io.to(allUsers[targetArrayIndex].username).emit('data_from_server', {dataType: 'update_user', payload: allUsers[targetArrayIndex]});
                 io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
                 return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `${dataFromClient.target} is now somebody that you USED to know.`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
             }

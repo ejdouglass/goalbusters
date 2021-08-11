@@ -7,8 +7,8 @@ const Alert = () => {
 
     return (
         <>
-            {state.alerts.map((alert, index) => (
-                <AlertContainer type={alert.type} offset={`${index}`} key={alert.id}>
+            {state?.alerts?.map((alert, index) => (
+                <AlertContainer type={alert.type} duration={alert.duration} offset={`${index}`} key={alert.id}>
                     <AlertContent message={alert.message} duration={alert.duration} index={index} dispatch={dispatch} />
                 </AlertContainer>
             ))}
@@ -27,21 +27,21 @@ const AlertContent = ({ message, duration, index, dispatch }) => {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            setRemainingDuration(remainingDuration - 0.01);
+            setRemainingDuration(remainingDuration - 1);
             if (remainingDuration <= 0) {
                 dispatch({type: actions.DISMISS_ALERT, payload: index});
             }
-        }, 10);
+        }, 1000);
 
         return () => clearTimeout(timer);
     }, [remainingDuration]);
 
     return (
-        <>
+        <div>
             <button onClick={dismissAlert}>X</button>
             <div>{message}</div>
-            <RemainingAlertTimeBar lengthiness={Math.floor(remainingDuration / initialDuration * 100)} />
-        </>
+            {/* <RemainingAlertTimeBar lengthiness={Math.floor(remainingDuration / initialDuration * 100)} /> */}
+        </div>
     )
 }
 

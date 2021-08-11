@@ -34,63 +34,112 @@ export default App;
 /*
 
 
-  FRESH THOUGHT FINISHERS (basic)
+  FRESH THOUGHT FINISHERS
 
-  Dashboard
-  [x] Update goal list buttons to be more visually useful: narrower, taller, ICONS: [group v solo] [ daily/weekend/week/MWF/TuTh ] [ in/complete ]
+  DASHBOARD
   -- Add filters for goal area (complete, incomplete, both; solo, group, all)
+  -- Update Sun - Sat readout at bottom to be meaningful
+    > X / Y goals achieved for previous/current day (and appropriate decoration)
+    > Y goals for upcoming days
+    > OOH, so x/y for SOLO goals, and x/y for GROUP goals, and then some other indicator for x/y OTHER users accomplishing that goal that day
+    > booping any given day should probably go to History for that day
+
+  -- Additional styling for goals when they're done vs undone (checkmark is kinda ugly, and can add color/etc. to the button itself to de-emphasize it a bit)
+    > consider sorting completed goals to the bottom?
+
+  -- DTAB: slightly update GOALS FOR (aesthetic, overall)... consider a PENDING and COMPLETE!, maybe 'below' the name text
+  
+  -- Today's Notifications should auto-scroll to the bottom, and maybe have a staggering background color to easily scan/read
+    > consider a two-part box with timestamp on left side and visually separated from text on the right
+
+  -- BGTAB: multiple users, multiple notes? ... it'd be cool to see the notes of friends as they go, as per the original intent of the project :P
+
+
+  -- BGTAB+: add the Notes to the notifications (well, the latest note)
+  
+  -- Group Goals: see how EVERYONE is doing? how/where/when
+    > probably will require viewing the Goal itself?
+    > shorthand visible somewhere for how many folks completed the goal that day would be ideal   
+  ..
+  [x] Update goal list buttons to be more visually useful: narrower, taller, ICONS: [group v solo] [ daily/weekend/week/MWF/TuTh ] [ in/complete ]
   [x] Pretty up the notifications a bit
   [x] Touch up the usermodal
   [x] Fix bug where creating new goal and then going to dashboard shows nothing until Ctrl+R
-  -- Update Sun - Sat readout at bottom to be meaningful
+  [x] BGTAB: update GOAL.NOTES to be more than tiny
+  [x] BGTAB & more: change goal-updating so that NOTIFICATIONS include GOAL.NAME (decided against goal notes, for now)
+  [x] BGTAB: add a "Back" button in case no changes need to be made
+  [x] BGTAB: maybe wrap that all in a form so 'Enter' @ notes or generally will submit it
+  [x] "you have no goals for today" should probably read "you don't have ANY goals yet" in that particular case :P
+
 
   Friends Page
+  ~~ add "CANCEL FRIEND REQUEST"
+  ..
   [x] list friends with their username + icon (flex-wrap buttons) ... big enough to have action-buttons on 'em to request
   [x] "My Friends" button vs "Search Friends" button
   [x] just searches by username; click to "request friend"
   [x] put all pending-style friend stuff in 'My Friends'
   [x] implement adding friends, removing friends, etc.
   [x] rejigger friend card to make it clear who's a friend, who's a requestReceived, who's a requestSent, etc.
-  -- add lil' color-badge for number of outstanding friend requests
+  [x] add lil' color-badge for number of outstanding friend requests
+  [x] fix so that 'request friend' button doesn't reset to... empty/'my friends' but not?
+  [x] style descriptive text, add minimum box height
+  [x] better distinguish which button is 'selected' on the top, maybe separate the two buttons altogether
+  [x] add FRIEND REQUEST to events/notifications, in addition to badging above
   [x] make sure to REMOVE searching yourself :P
 
-  Goal Page
-  -- Add formatting to GOAL CARDS
-  -- Have booping goal cards lead to something useful? (view & edit if allowed, ___)
+  GOAL PAGE
+  -- Have booping goal cards lead to VIEW/EDIT
+    > goal.participants[usernameX] = {joinTime: ..., privilegeLevel: 'admin'}
+  -- New idea: slap separate buttons on the bottom for "All" "Reset to 0" "MWF" "TuTh" "Weekends" shortcut buttons    
+  ..
+  [x] Add formatting to GOAL CARDS themselves
+  [x] Make goal listing less... jumpy-aroundy (centered is probably not the way to go)
   [x] Fix goal search (again :P)
+  ~~ figure out how to format DatePicker (it doesn't fit the aesthetic :P)
 
-  History Page
+  HISTORY PAGE
+  OVERVIEW: basically a combo of the Dashboard bar (x/y goals per day, but harsher on missed days maybe), with that day's notifications listed
+  ..
   -- should use User.history object to be able to go back in time and see overview of each day's activity (basically same as Dashboard for that day-of)
   -- limited editing should be possible (i.e. changing data from previous days/weeks, adding stuff from the past -- maybe in future versions only)
   -- use DatePicker, but center it on a Date() variable that is mutable with other inputs so we can do "jump to Day 1" or whatever
+  ..
 
-  Notifications
-  -- Design concept for socket-based as well as fresh login notifications (lean into user.lastActivity?)
-  -- Could probably go 'simple' and just flood-feed each day's stuff?
-    -- The big challenge is to figure out what data to aggregate and then fetch it appropriately
-  -- Add 'history' button that links to history page larger scale notifications?
+  NOTIFICATIONS
+  [x] Eh, each day has its own notifications -- not gonna fuss around with "these ones are NEW"
 
-  Settings Page
-  -- mostly selecting an icon, I guess? ... and maybe delete account?
+  SETTINGS PAGE
+  -- rename to 'preferences'?
+  -- format, probably just scoot it into the main body of the SPA (remove separate settings page concept)
+  -- add icon choosing
+  -- add delete account
 
-  Alerts
-  -- make pretty
-  -- maybe change that 'progress bar' that drains at the bottom to be... not there :P
+  ALERTS
+  -- make pretty/more consistent with app aesthetic
+  -- hitting "X" takes a sec to dismiss... fix to immediate
+  ..
+  [x] maybe change that 'progress bar' that drains at the bottom to be... not there :P
 
   Welcome Page
   -- oof. make less ugly, more consistent with the rest of the app
   [x] wrap in a form for 'enter' --> log in
 
-  Creaet New Account Page
+  Create New Account Page
   -- likewise, make a little more consistent with app aesthetic
   [x] wrap in a form for 'enter' --> create
 
-  General
+  General improvements, bugs to squash
+  [x] Add allUsers update to saveUser fxn (and make sure saveUser fxn is being used whenever anything relevant happens to user's data)
+  -- oddly, if the app is open 'overnight,' a refresh shows empty data, and a SECOND refresh will show all the proper goals/etc.
+  -- the USER is updated when a goal is udpated; now make sure the GOAL is updated, as well!
+  [x] BUDDY
+  -- Mobile-friendliness: @media everything necessary to column-ize @ sub... 520px, at a guess?
   -- make goals delete-able from somewhere (goal overview/edit page makes most sense)
+  -- handle the ending of a goal somehow
+  -- refreshing after a day has passed has some weird effects (multiple refreshes to 'fix' it, still have notifications being wonky)
 
-  Mobile-friendliness
-  -- Adjust all pages/containers/etc. to be column-ular at mobile widths (look up common mobile widths we might be dealing with :P)
-  -- Squinch at all pages with this eye
+
 
 
 
