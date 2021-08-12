@@ -26,11 +26,15 @@ const AlertContent = ({ message, duration, index, dispatch }) => {
     }
 
     useEffect(() => {
+        if (remainingDuration <= 0) {
+            dispatch({type: actions.DISMISS_ALERT, payload: index});
+        }
         const timer = setTimeout(() => {
             setRemainingDuration(remainingDuration - 1);
-            if (remainingDuration <= 0) {
-                dispatch({type: actions.DISMISS_ALERT, payload: index});
-            }
+            // taking out this 'duplicate' check might extend the duration of alerts by 1 sec, which is fine at this stage
+            // if (remainingDuration <= 0) {
+            //     dispatch({type: actions.DISMISS_ALERT, payload: index});
+            // }
         }, 1000);
 
         return () => clearTimeout(timer);

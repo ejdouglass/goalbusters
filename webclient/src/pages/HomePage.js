@@ -22,7 +22,7 @@ import gnomeSVG from '../assets/avatars/gnome.svg';
 import elfSVG from '../assets/avatars/elf.svg';
 import princessSVG from '../assets/avatars/princess.svg';
 import fairySVG from '../assets/avatars/fairy.svg';
-import { HomePageBackgroundContainer, HomePageContainer, HomePageSidebar, HomePageSidebarLogoContainer, HomePageSidebarItemContainer, HomePageContent, HomePageHeaderBar, HomePageTitle, HomePageIconContainer, MessageIcon, UserIcon, HomePageBody, DashboardDate, GoalsPageButtonContainer, GoalListPageButton, DashboardRowOne, DashboardRowTwo, DashboardRowThree, DashboardNarrowContainer, DashboardWideContainer, GoalsListContainer, GoalCard, SideBarIcon, GoalSearchInput, GoalInputContainer, GoalInputLabel, GoalButtonsContainer, GoalButton, GroupInfoInput, UserModal, UserModalButton, DailyProgressContainer, DailyProgressDayLabel, SideBarText, DashboardGoalButton, GroupInfoInputContainer, FriendCardContainer, NewFriendsBadge } from '../styled/styled';
+import { HomePageBackgroundContainer, HomePageContainer, HomePageSidebar, HomePageSidebarLogoContainer, HomePageSidebarItemContainer, HomePageContent, HomePageHeaderBar, HomePageTitle, HomePageIconContainer, MessageIcon, UserIcon, HomePageBody, DashboardDate, GoalsPageButtonContainer, GoalListPageButton, DashboardRowOne, DashboardRowTwo, DashboardRowThree, DashboardNarrowContainer, DashboardWideContainer, GoalsListContainer, GoalCard, SideBarIcon, GoalSearchInput, GoalInputContainer, GoalInputLabel, GoalButtonsContainer, GoalButton, GroupInfoInput, UserModal, UserModalButton, DailyProgressContainer, DailyProgressDayLabel, SideBarText, DashboardGoalButton, GroupInfoInputContainer, FriendCardContainer, NewFriendsBadge, DashboardTopRow, BuddyButtonContainer } from '../styled/styled';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -112,6 +112,9 @@ const HomePage = () => {
         weeklyCompletionTarget: 1
     });      
     const [goalPage, setGoalPage] = useState(1);
+    let goalsListEle;
+    
+
 
     function bustGoal(goal) {
         setGoalToCompare(goal);
@@ -359,8 +362,8 @@ const HomePage = () => {
     }, [goalSearch]);
 
     useEffect(() => {
+        let visibleFriendsArray = [];
         if (friendSearch) {
-            let visibleFriendsArray = [];
             if (viewMyFriends) {
                 for (const username in state?.friends) {
                     visibleFriendsArray.push(state.friends[username]);
@@ -374,12 +377,17 @@ const HomePage = () => {
                 dispatch({type: actions.SEND_DATA, payload: {requestType: 'search_new_friend', searchString: friendSearch}});
             }
         }
-        if (!friendSearch && !viewMyFriends) {
-            let friendsArray = [];
-            for (const username in state?.friends) {
-                friendsArray.push(state.friends[username]);
+        if (!friendSearch) {
+            if (!viewMyFriends) {
+                setFriendsList(visibleFriendsArray);
             }
-            setFriendsList(friendsArray);
+            if (viewMyFriends) {
+                for (const username in state?.friends) {
+                    visibleFriendsArray.push(state.friends[username]);
+                }
+                setFriendsList(visibleFriendsArray);
+            }
+            
         }
     }, [friendSearch]);
 
@@ -436,6 +444,19 @@ const HomePage = () => {
             }
         }
     }, [state?.dataToReceive]);
+
+    useEffect(() => {
+        if (sidebarSelection === 'dashboard') {
+            goalsListEle = document.getElementById("goalsList");
+            // console.log(`Scrollheight of goalslist is ${goalsListEle.scrollHeight}`)
+            // console.log(`Client of goalslist is ${goalsListEle.clientHeight}`)
+            if (goalsListEle.scrollHeight - Math.abs(goalsListEle.scrollTop) === goalsListEle.clientHeight) {
+                // HERE: can go ahead and add a 'scroll down arrow' effect, theoretically...
+                // ... however, that arrow will currently just stay there, since we're listening for sidebarSelection, NOT current scrollheight
+            }
+        }
+        return goalsListEle = 0;
+    }, [sidebarSelection]);
 
     return (
         <HomePageBackgroundContainer onClick={() => userModalVisible ? setUserModalVisible(false) : null}>
@@ -499,25 +520,31 @@ const HomePage = () => {
                         {sidebarSelection === 'dashboard' && (
                             <div style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-                                <DashboardRowTwo>
+                                <DashboardTopRow>
                                     {/* List of goals
                                         ACROSS TOP: quick filter-by boops
                                         Column down: buttons that lead to detail (and delete) page, progress OR done/undone for day, group/solo icon, name
                                     */}
-                                    <DashboardNarrowContainer style={{marginRight: 'calc(1rem + 1vw)', flexDirection: 'column', flex: 2, alignItems: 'center', overflow: 'scroll'}}>
-                                        <DashboardDate style={{alignSelf: 'flex-start'}}>Goals for {dayNumberToWord(today.getDay()).slice(0,3).toUpperCase()} {today.getMonth() + 1}/{today.getDate()}/{`${today.getFullYear()}`.slice(2)}</DashboardDate>
+
+                                    <DashboardNarrowContainer id='goalsList' style={{flexDirection: 'column', position: 'relative', overflow: 'hidden'}}>
+                                        <DashboardDate style={{alignSelf: 'flex-start'}}>
+                                            <div>Goals for {dayNumberToWord(today.getDay()).slice(0,3).toUpperCase()} {today.getMonth() + 1}/{today.getDate()}/{`${today.getFullYear()}`.slice(2)}</div>
+                                            <div style={{fontSize: '0.8em'}}>{todaysGoals.filter(goal => goal.complete).length}/{todaysGoals.length} done for the day!</div>
+                                        </DashboardDate>
+                                        <div style={{overflow: 'scroll', width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
                                         {todaysGoals.map((goal,index) => (
                                             <DashboardGoalButton key={index} onClick={() => bustGoal(goal)}>
                                                 <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'calc(30px + 1vw)', height: 'calc(30px + 1vw)', backgroundColor: 'white', borderRadius: '1rem'}}>
-                                                    <img src={goal.groupRule === 'solo' ? soloSVG : groupSVG} style={{width: 'calc(25px + 1vw)'}} />
+                                                    <img src={goal.groupRule === 'solo' ? soloSVG : groupSVG} style={{width: 'calc(20px + 1vw)'}} />
                                                 </div>
                                                 
                                                 {goal.name}
-                                                <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'calc(30px + 1vw)', height: 'calc(30px + 1vw)', backgroundColor: goal.complete ? 'green' : 'yellow', borderRadius: '1rem'}}>
-                                                    <img src={goal.complete ? completeSVG : pendingSVG} style={{width: 'calc(25px + 1vw)'}}/>
+                                                <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'calc(30px + 1vw)', height: 'calc(30px + 1vw)', backgroundColor: goal.complete ? 'hsl(135,90%,50%)' : 'hsl(50,90%,70%)', borderRadius: '100%'}}>
+                                                    <img src={goal.complete ? completeSVG : pendingSVG} style={{width: 'calc(20px + 1vw)'}}/>
                                                 </div>
                                             </DashboardGoalButton>
                                         ))}
+                                        </div>
                                         {todaysGoals.length === 0 && (
                                             <div>
                                                 {state?.goals?.length ? (
@@ -530,15 +557,16 @@ const HomePage = () => {
                                     </DashboardNarrowContainer>
 
                                     {/* Notifications for today */}
-                                    <DashboardWideContainer style={{flexDirection: 'column', overflow: 'scroll'}}>
+                                    <DashboardNarrowContainer id='notificationsList' style={{flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden'}}>
                                         <DashboardDate>Today's Notifications</DashboardDate>
+                                        <div style={{overflow: 'scroll', width: '100%', display: 'flex', alignItems: 'flex-start', flexDirection: 'column'}}>
                                         {state?.history[calcDayKey()]?.events?.length ? (
                                             <>
-                                            {/* Awesome! Now to create a separate 'timestamp' vs 'text' below to keep time-length from creating jagged formatting */}
-                                            {/* Also, we want to auto-scroll to the latest news here, so start that adventure:
-                                            https://stackoverflow.com/questions/18614301/keep-overflow-div-scrolled-to-bottom-unless-user-scrolls-up */}
-                                            {state.history[calcDayKey()].events.map((historyItem, index) => (
-                                                <div key={index} style={{marginBottom: '0.5rem'}}>{calcTimestamp(new Date(historyItem.timestamp))}: {historyItem.agent === state?.username ? 'You' : historyItem.agent} {historyItem.action}</div>
+                                            {state.history[calcDayKey()].events.slice().reverse().map((historyItem, index) => (
+                                                <div key={index} style={{width: '100%', padding: '0.5rem', marginBottom: index === 0 ? '2rem' : '0.75rem', backgroundColor: index % 2 === 0 ? 'hsl(260,90%,80%)' : 'hsl(260,80%,90%)'}}>
+                                                    <div style={{fontWeight: '600'}}>{calcTimestamp(new Date(historyItem.timestamp))}{index === 0 ? ` - Most Recent` : ``}</div>
+                                                    <div>{historyItem.agent === state?.username ? 'You' : historyItem.agent} {historyItem.action}</div>
+                                                </div>
                                             ))}
                                             </>
                                         ) : (
@@ -547,16 +575,16 @@ const HomePage = () => {
                                             </>
                                             
                                         )}
-                                    </DashboardWideContainer>
+                                        </div>
+                                    </DashboardNarrowContainer>
 
-                                </DashboardRowTwo>
+                                </DashboardTopRow>
 
-                                <DashboardRowThree>
+                                <DashboardRowThree style={{width: '100%'}}>
                                     {/* HERE: weeklong overview of days; go through their HISTORY (if applicable) to show day COMPLETE, INCOMPLETE, n/a (no goals), n/a-2 (not there yet)
                                         - Booping should hop us over to this week's HISTORYPAGE entry
                                     */}
-                                    <DashboardWideContainer style={{justifyContent: 'center', alignItems: 'center'}}>
-                                        {/* Looks good so far. How to make it responsive to THIS WEEK, though? */}
+                                    <DashboardWideContainer style={{justifyContent: 'center', alignItems: 'center', width: '96%'}}>
                                         <WeeklyBar state={state} dispatch={dispatch} />
                                     </DashboardWideContainer>
                                 </DashboardRowThree>
@@ -761,6 +789,7 @@ const HomePage = () => {
                                         <div style={{display: 'flex', width: '100%', position: 'relative', marginTop: '1.5rem'}}>
                                             <GoalInputLabel>Shortcut Day-Selection Buttons:</GoalInputLabel>
                                             <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 7} onClick={() => setNewGoal({...newGoal, weekDays: {sun: true, mon: true, tue: true, wed: true, thu: true, fri: true, sat: true}})} barButton>ALL THE DAYS</GoalButton>
+                                            <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.mon && newGoal.weekDays.tue && newGoal.weekDays.wed && newGoal.weekDays.thu &&  newGoal.weekDays.fri && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 5)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: true, tue: true, wed: true, thu: true, fri: true, sat: false}})} barButton>Weekdays</GoalButton>
                                             <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.mon && newGoal.weekDays.wed && newGoal.weekDays.fri && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 3)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: true, tue: false, wed: true, thu: false, fri: true, sat: false}})} barButton>M-W-F</GoalButton>
                                             <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.tue && newGoal.weekDays.thu && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 2)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: false, mon: false, tue: true, wed: false, thu: true, fri: false, sat: false}})} barButton>Tu-Th</GoalButton>
                                             <GoalButton style={{width: '6vw', marginLeft: '0.3rem'}} selected={(newGoal.weekDays.sat && newGoal.weekDays.sun && Object.keys(newGoal.weekDays).filter(day => newGoal.weekDays[day]).length === 2)} onClick={() => setNewGoal({...newGoal, weekDays: {sun: true, mon: false, tue: false, wed: false, thu: false, fri: false, sat: true}})} barButton>Weekends</GoalButton>
@@ -836,20 +865,20 @@ const HomePage = () => {
                         {sidebarSelection === 'friends' && (
                             <div style={{width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
 
-                                <DashboardRowOne style={{justifyContent: 'space-around', height: 'auto'}}>
-                                    <DashboardNarrowContainer style={{display: 'flex', flexWrap: 'wrap', flexDirection: 'column', justifyContent: 'center', alignContent: 'center'}}>
-                                        <div style={{display: 'flex', marginBottom: '1rem', justifyContent: 'space-around'}}>
+                                <DashboardRowOne style={{justifyContent: 'space-around', height: 'auto', width: '100%', marginBottom: '1rem'}}>
+                                    <DashboardNarrowContainer style={{width: '96%', display: 'flex', flexWrap: 'wrap', flexDirection: 'column', justifyContent: 'center', alignContent: 'center'}}>
+                                        <BuddyButtonContainer>
                                             <GoalButton style={{width: 'calc(100px + 3vw)'}} selected={viewMyFriends} onClick={() => setViewMyFriends(true)}>View My Buddies</GoalButton>
                                             <GoalButton style={{width: 'calc(100px + 3vw)'}} selected={!viewMyFriends} onClick={() => setViewMyFriends(false)}>Search New Buddies</GoalButton>
-                                        </div>
+                                        </BuddyButtonContainer>
                                         <div style={{position: 'relative'}}>
-                                            <GroupInfoInput style={{width: 'calc(200px + 6vw)', height: '36px'}} value={friendSearch} onChange={e => handleFriendSearch(e.target.value)} placeholder={viewMyFriends ? `search my friends` : 'search for friends'}></GroupInfoInput>    
+                                            <GroupInfoInput style={{height: '36px'}} value={friendSearch} onChange={e => handleFriendSearch(e.target.value)} placeholder={viewMyFriends ? `search my friends` : 'search for friends'}></GroupInfoInput>    
                                         </div>
                                     </DashboardNarrowContainer>
                                 </DashboardRowOne>   
 
-                                <GoalsListContainer style={{minHeight: '200px', justifyContent: 'center'}}>
-                                    <h3 style={{width: '100%', margin: '0.75rem 1rem', alignSelf: 'flex-start'}}>
+                                <GoalsListContainer style={{minHeight: '200px', maxHeight: '400px', width: '96%', justifyContent: 'center', overflow: 'scroll', marginTop: '0'}}>
+                                    <h3 style={{width: '100%', margin: '0.75rem 1rem', alignSelf: 'flex-start', fontSize: 'calc(1rem + 0.3vw)', textAlign: 'center'}}>
                                         {viewMyFriends ? `My Goalbusting Buddies` : `Searching New Buddies`}
                                     </h3>
                                     {friendsList.length > 0 ? (friendsList.map((friend, index) => (
@@ -1051,13 +1080,12 @@ const FriendCard = ({ index, state, dispatch, friend }) => {
         }
     }, [state.friends]);
 
-    // ADD: icon for friends, icon for friend requested, icon for friend request received, etc.
     return (
         <FriendCardContainer>
             <div style={{display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-around', width: '100%'}}>
                 <img src={friend.icon} style={{width: '50px'}} />
                 <div style={{display: 'flex', flexDirection: 'column'}}>
-                    <div>{friend.username}</div>
+                    <div style={{fontSize: 'calc(0.7rem + 0.2vw)'}}>{friend.username}</div>
                     <div style={{fontSize: '0.7rem', color: 'hsl(260,0%,50%)'}}>{friendSubtext[state?.friends[friend.username]?.status] || 'Stranger Danger'}</div>
                 </div>
             </div>

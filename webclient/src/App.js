@@ -43,19 +43,23 @@ export default App;
     > Y goals for upcoming days
     > OOH, so x/y for SOLO goals, and x/y for GROUP goals, and then some other indicator for x/y OTHER users accomplishing that goal that day
     > booping any given day should probably go to History for that day
+  
+  [x] Goals List: add x / y goals done for today
+  -- Goals List: indicate when it's time to scroll down
+
+  -- Goals & Notifications: 'pin' the top line/header by making it separate, and put the rest in a scrollable div
 
   -- Additional styling for goals when they're done vs undone (checkmark is kinda ugly, and can add color/etc. to the button itself to de-emphasize it a bit)
     > consider sorting completed goals to the bottom?
-
-  -- DTAB: slightly update GOALS FOR (aesthetic, overall)... consider a PENDING and COMPLETE!, maybe 'below' the name text
   
   -- Today's Notifications should auto-scroll to the bottom, and maybe have a staggering background color to easily scan/read
     > consider a two-part box with timestamp on left side and visually separated from text on the right
 
   -- BGTAB: multiple users, multiple notes? ... it'd be cool to see the notes of friends as they go, as per the original intent of the project :P
 
-
   -- BGTAB+: add the Notes to the notifications (well, the latest note)
+
+  -- BGTAB: backend - ensure that the GOALS THEMSELVES are updated as well, and that all participants are pinged for GROUP goals
   
   -- Group Goals: see how EVERYONE is doing? how/where/when
     > probably will require viewing the Goal itself?
@@ -72,9 +76,12 @@ export default App;
   [x] "you have no goals for today" should probably read "you don't have ANY goals yet" in that particular case :P
 
 
-  Friends Page
+  FRIENDS PAGE
+  -- 'Visit Profile' should... probably DO something (see THEIR history?)
   ~~ add "CANCEL FRIEND REQUEST"
   ..
+  [x] when 'search new buddies' is active, NO RESULTS should show when backspacing back to empty bar
+  [x] when 'search my buddies' is active, ALL RESULTS should show when backspacing back to empty bar  
   [x] list friends with their username + icon (flex-wrap buttons) ... big enough to have action-buttons on 'em to request
   [x] "My Friends" button vs "Search Friends" button
   [x] just searches by username; click to "request friend"
@@ -91,8 +98,11 @@ export default App;
   GOAL PAGE
   -- Have booping goal cards lead to VIEW/EDIT
     > goal.participants[usernameX] = {joinTime: ..., privilegeLevel: 'admin'}
-  -- New idea: slap separate buttons on the bottom for "All" "Reset to 0" "MWF" "TuTh" "Weekends" shortcut buttons    
+  -- Add a "goal summary" on the top for at-a-glance goodness; scoot project name down into the 'set stuff up' sxn
+  -- Change "CreateGoal" on the top to be... spacious :P
+  ~~ Consider visually highlighting the 'stuff you need to select' and have them be 'happy color' when done
   ..
+  [x] New idea: slap separate buttons on the bottom for "All" "Reset to 0" "MWF" "TuTh" "Weekends" shortcut buttons  
   [x] Add formatting to GOAL CARDS themselves
   [x] Make goal listing less... jumpy-aroundy (centered is probably not the way to go)
   [x] Fix goal search (again :P)
@@ -108,6 +118,7 @@ export default App;
 
   NOTIFICATIONS
   [x] Eh, each day has its own notifications -- not gonna fuss around with "these ones are NEW"
+  -- Quick fix: notifications start with MOST RECENT on the top! (can add filter later to flip it)
 
   SETTINGS PAGE
   -- rename to 'preferences'?
@@ -117,15 +128,15 @@ export default App;
 
   ALERTS
   -- make pretty/more consistent with app aesthetic
-  -- hitting "X" takes a sec to dismiss... fix to immediate
   ..
+  [x] hitting "X" takes a sec to dismiss... fix to immediate
   [x] maybe change that 'progress bar' that drains at the bottom to be... not there :P
 
-  Welcome Page
+  WELCOME PAGE
   -- oof. make less ugly, more consistent with the rest of the app
   [x] wrap in a form for 'enter' --> log in
 
-  Create New Account Page
+  NEW ACCOUNT PAGE
   -- likewise, make a little more consistent with app aesthetic
   [x] wrap in a form for 'enter' --> create
 
@@ -133,7 +144,7 @@ export default App;
   [x] Add allUsers update to saveUser fxn (and make sure saveUser fxn is being used whenever anything relevant happens to user's data)
   -- oddly, if the app is open 'overnight,' a refresh shows empty data, and a SECOND refresh will show all the proper goals/etc.
   -- the USER is updated when a goal is udpated; now make sure the GOAL is updated, as well!
-  [x] BUDDY
+  -- Friend --> BUDDY :P
   -- Mobile-friendliness: @media everything necessary to column-ize @ sub... 520px, at a guess?
   -- make goals delete-able from somewhere (goal overview/edit page makes most sense)
   -- handle the ending of a goal somehow

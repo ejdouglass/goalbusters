@@ -432,7 +432,7 @@ export const HomePageBody = styled.div`
     display: flex;
     width: 100%;
     align-items: center;
-    justify-content: center;
+    // justify-content: center;
     // background-color: green;
     margin-top: 30px;
     flex-direction: column;
@@ -443,12 +443,21 @@ export const HomePageBody = styled.div`
 export const DashboardDate = styled.h3`
     // position: absolute;
     // align-self: flex-start;
-    font-size: calc(0.5rem + 0.4vw);
+    position: relative;
+    display: flex;
+    box-sizing: border-box;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0.5rem;
+    font-size: calc(0.7rem + 0.4vw);
     font-weight: 600;
     letter-spacing: 0.4px;
     // margin-top: -2.5rem;
     // margin-left: 1.5rem;
-
+    @media only screen and (max-width: 400px) {
+        flex-direction: column;
+        align-items: center;
+    }
 `;
 
 export const GoalsPageButtonContainer = styled.div`
@@ -495,6 +504,19 @@ export const DashboardRowTwo = styled(DashboardRowOne)`
     height: 420px;
 `;
 
+export const DashboardTopRow = styled(DashboardRowOne)`
+    min-height: 420px;
+    box-sizing: border-box;
+    width: 100%;
+    flex-direction: row;
+    justify-content: space-around;
+    @media only screen and (max-width: 700px) {
+        flex-direction: column;
+        justify-content: space-around;
+        align-items: center;
+    }
+`;
+
 export const DashboardRowThree = styled(DashboardRowOne)``;
 
 export const DashboardNarrowContainer = styled.div`
@@ -502,16 +524,25 @@ export const DashboardNarrowContainer = styled.div`
     padding: 1rem;
     font-size: calc(0.5rem + 0.5vw);
     font-weight: 300;
+    width: 46%;
     letter-spacing: 1px;
     box-sizing: border-box;
+    overflow: scroll;
     background-color: white;
+    align-items: center;
     border-radius: 2rem;
     border: 1px solid hsl(260, 90%, 90%);
-    flex: 1;
+    // For now, let's assume this container turns into a wide, full-screen fella at narrow screens
+    @media only screen and (max-width: 700px) {
+        margin: 0;
+        width: 92%;
+        min-height: 50%;
+        margin-bottom: 1rem;
+    }
 `;
 
 export const DashboardWideContainer = styled(DashboardNarrowContainer)`
-    flex: 2;
+    // basically ended up removing all distinctions between this and above, so probably worth going through and removing the wides altogether
 `;
 
 export const GoalsListContainer = styled.div`
@@ -570,9 +601,9 @@ export const SideBarText = styled.button`
     margin-left: 0.5rem;
     font-size: calc(0.6rem + 0.4vw);
     width: 150px;
-    @media only screen and (max-width: 400px) {
+    @media only screen and (max-width: 700px) {
         width: 0;
-        overflow: hidden;
+        visibility: hidden;
     }
 `
 
@@ -718,6 +749,10 @@ export const FriendCardContainer = styled.div`
     margin: 1rem;
     width: 200px;
     height: 200px;
+    @media only screen and (max-width: 400px) {
+        width: 150px;
+        height: 200px;
+    }
 `;
 
 export const NewFriendsBadge = styled.div`
@@ -740,10 +775,19 @@ export const NewFriendsBadge = styled.div`
     `}
 `;
 
+export const BuddyButtonContainer = styled.div`
+    display: flex;
+    flex-direction: row;
+    width: calc(230px + 6vw);
+    margin-bottom: 1rem;
+    justify-content: space-around;
+    @media only screen and (max-width: 700px) {
+        flex-direction: column;
+        width: auto;
+    }
+`;
 
-
-
-
+//<div style={{display: 'flex', width: 'calc(230px + 6vw)', marginBottom: '1rem', justifyContent: 'space-around'}}>
 
 
 /*
