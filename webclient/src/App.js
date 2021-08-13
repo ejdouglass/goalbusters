@@ -35,6 +35,20 @@ export default App;
 
 
   FRESH THOUGHT FINISHERS
+  ... the adjustments are good and all, but let's de-emphasize aesthetic twiddling and up-emphasize core functionality
+  ::: GOALS ON BACKEND HAVING THEIR OWN HISTORY - this will allow detailed viewing of goals for GeneralHistory
+  ::: VIEW GOALS (evolving goals is a separate, maybe-later concern)... HOWEVER! Removing participants as admin of a goal might be fine.
+  ::: GOAL SEARCH - 'detaching' goals from a given user, GROUP GOALS can become super universal, but need to be searchable in this case
+    > maybe a GROUP GOAL creation can be a bit more editable and making one pops you on the edit-details page instead vs a solo project
+  ::: HISTORY PAGE - be able to populate any given day when heading to the page to see details for that day as well as for the week (and maybe lifespan for specific goals)
+    > need to separate GeneralHistory and (Specific)GoalHistory?
+  ::: VIEW OTHER PERSON'S PROFILE - decide briefly on what should be 'visible' (based on privacy)
+    > 'back' button in this case should
+  ::: SETTINGS/PREFERENCES - privacy default, icon selection, delete account
+    > privacy global for this (split for friends vs non-friends vs whatever is too nuanced for a simple project)
+  -- do these six, and your core content is complete! (after that, just wiggle the mobile and aesthetic stuff to satisfaction, and fix any bugs/issues)
+
+
 
   DASHBOARD
   -- Add filters for goal area (complete, incomplete, both; solo, group, all)
@@ -44,7 +58,6 @@ export default App;
     > OOH, so x/y for SOLO goals, and x/y for GROUP goals, and then some other indicator for x/y OTHER users accomplishing that goal that day
     > booping any given day should probably go to History for that day
   
-  [x] Goals List: add x / y goals done for today
   -- Goals List: indicate when it's time to scroll down
 
   -- Goals & Notifications: 'pin' the top line/header by making it separate, and put the rest in a scrollable div
@@ -65,6 +78,7 @@ export default App;
     > probably will require viewing the Goal itself?
     > shorthand visible somewhere for how many folks completed the goal that day would be ideal   
   ..
+  [x] Goals List: add x / y goals done for today  
   [x] Update goal list buttons to be more visually useful: narrower, taller, ICONS: [group v solo] [ daily/weekend/week/MWF/TuTh ] [ in/complete ]
   [x] Pretty up the notifications a bit
   [x] Touch up the usermodal
@@ -143,6 +157,9 @@ export default App;
   General improvements, bugs to squash
   [x] Add allUsers update to saveUser fxn (and make sure saveUser fxn is being used whenever anything relevant happens to user's data)
   -- oddly, if the app is open 'overnight,' a refresh shows empty data, and a SECOND refresh will show all the proper goals/etc.
+    > it will show the correct day at the top, but the previous goals stuff; one refresh clears it all out; two refreshes populates the proper info
+  -- little 'flicker' in some cases
+    > switching from 'search buddies' to 'view buddies'
   -- the USER is updated when a goal is udpated; now make sure the GOAL is updated, as well!
   -- Friend --> BUDDY :P
   -- Mobile-friendliness: @media everything necessary to column-ize @ sub... 520px, at a guess?

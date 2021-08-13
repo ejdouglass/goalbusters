@@ -103,6 +103,21 @@ function saveUser(user) {
     allUsers[targetArrayIndex] = user;
 }
 
+function saveGoal(goal) {
+    // ok, we're receiving a single PARTICIPANT'S actions in this case... so what do we need to do?
+    // retrieve, patch, then update?
+    const filter = { _id: user.username };
+    const update = { $set: user };
+    const options = { new: true, useFindAndModify: false };
+    User.findOneAndUpdate(filter, update, options)
+        .then(updatedResult => {
+            console.log(`${updatedResult.username} has been updated.`);
+        })
+        .catch(err => {
+            console.log(`We encountered an error saving the user whilst adding a new goal: ${err}.`);
+        });    
+}
+
 // HMMM. io.to(roomName).emit(...) works in all cases. socket.to(roomName).emit does NOT. Can maybe just socket.emit for individual stuff, io.to(roomName) for specifics?
 io.on('connection', (socket) => {
     let thisUser = undefined;
@@ -291,6 +306,8 @@ io.on('connection', (socket) => {
 
             }
             case 'update_daily_goal': {
+                // TO ADD: properly updating the actual Goal on backend, which will enable proper multi-user participation support
+                // ADJUST: remove goalObj.notes here; have it reset each time in the client, as well
                 const goalObj = dataFromClient.finalizedGoalObj;
                 const eventObj = dataFromClient.eventObj;
                 goalObj.events.push(eventObj);
@@ -299,6 +316,31 @@ io.on('connection', (socket) => {
                 thisUser.history[goalObj.dateKey].goals[goalObj.id] = {...goalObj};
                 thisUser.history[goalObj.dateKey].events.push(eventObj);
                 saveUser(thisUser);
+                Goal.findOne({ _id: goalID })
+                .then(updateGoal => {
+                    if (updateGoal.history === undefined) updateGoal.history = {};
+                    if (updateGoal.history[goalObj.dateKey] === undefined) updateGoal.history[goalObj.dateKey] = {events: [], participants: {}};
+                    updateGoal.history[goalObj.dateKey].events.push(eventObj);
+                    if (updateGoal.history[goalObj.dateKey].participants[thisUser.username] === undefined) updateGoal.history[goalObj.dateKey].participants[thisUser.username] = {username: thisUser.username};
+                    updateGoal.history[goalObj.dateKey].participants[thisUser.username].goalObj = goalObj;                    
+                    // HERE: saveGoal
+                })
+                .catch(err => {
+                    console.log(err);
+                    // res.json({type: `failure`, echo: JSON.stringify(err)});
+                });
+                
+                // hm, HISTORY for a goal will look a bit different... history[DATEKEY] = {events: [], participants: {}}; participants instead of goals
+                // participants obj = BOB: {username: BOB, goalObj: BOBSGOALOBJHERE}
+                // that should preserve all the individual actions of each individual in a group goal
+
+
+                // here: saveGoal... figure out what goalObj has in it so we can pass properly (looks like we have id, which is very helpful)
+
+                // we have the id, we have the participant in thisUser.username, we have the goalObj.dateKey, and goalObj itself (that day's done-ness of goal)
+                // GOAL has a history as well, so essentially we want to LOAD the full goal, plug in the proper history, and ride
+                
+                // HERE: If Group Goal, push to everyone's history appropriately via usernames array
                 io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
                 return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `You have updated ${goalObj.name}!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
             }

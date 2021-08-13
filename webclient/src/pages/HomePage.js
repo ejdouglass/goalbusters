@@ -112,7 +112,6 @@ const HomePage = () => {
         weeklyCompletionTarget: 1
     });      
     const [goalPage, setGoalPage] = useState(1);
-    let goalsListEle;
     
 
 
@@ -144,11 +143,13 @@ const HomePage = () => {
         let finalizedGoalObj = {...goalToBust};
         let rightNow = new Date();
         let actionString = ` recorded ${finalizedGoalObj.dailyTargetUnitsDone} ${finalizedGoalObj.dailyTargetUnits} completed for ${finalizedGoalObj.name}`;
+        if (goalToBust?.notes) actionString += ` with the note: [${goalToBust.notes}]`;
         finalizedGoalObj.complete = finalizedGoalObj.dailyTargetUnitsDone >= finalizedGoalObj.dailyTargetNumber ? true : false;
         actionString += finalizedGoalObj.complete ? `, finishing this project for the day!` : `.`;
         let eventObj = {timestamp: rightNow, agent: state.username, action: actionString};
         setGoalToBust({});
         
+        // To 'fix': add note(s) to the eventObj's ACTION string, mostly (the rest can be handled backend)
         dispatch({type: actions.SEND_DATA, payload: {requestType: 'update_daily_goal', finalizedGoalObj: finalizedGoalObj, eventObj: eventObj}});
         setSidebarSelection('dashboard');
         // idea: can have a 'whatDo' updater on server, so when the response is sent, it also pushes us back to the dashboard, rather than just going
@@ -208,12 +209,17 @@ const HomePage = () => {
         
     }
 
+    function handleGoalScroll(e) {
+        const goalsListEle = document.getElementById('goalsList');
+        if (goalsListEle.scrollHeight - Math.abs(goalsListEle.scrollTop) === goalsListEle.clientHeight) {
+            return console.log(`You've scrolled as far as scrolling can be done here!`);
+            
+        }
+        return console.log(`More scrolling is possible!`);
+    }
+
     useEffect(() => {
         if (state?.goals) {
-            // This works well, but I think having a 'max' of a certain number and a 'page 2 page 3 page x' bar would make more sense at this point...
-            // Then add a search bar and filters; search bar for goalName matches, filter for starred/solo/group/etc.
-
-            
             let goalArray = [];
             let allGoalArray = [];
             let today = new Date().getDay();
@@ -445,18 +451,27 @@ const HomePage = () => {
         }
     }, [state?.dataToReceive]);
 
-    useEffect(() => {
-        if (sidebarSelection === 'dashboard') {
-            goalsListEle = document.getElementById("goalsList");
-            // console.log(`Scrollheight of goalslist is ${goalsListEle.scrollHeight}`)
-            // console.log(`Client of goalslist is ${goalsListEle.clientHeight}`)
-            if (goalsListEle.scrollHeight - Math.abs(goalsListEle.scrollTop) === goalsListEle.clientHeight) {
-                // HERE: can go ahead and add a 'scroll down arrow' effect, theoretically...
-                // ... however, that arrow will currently just stay there, since we're listening for sidebarSelection, NOT current scrollheight
-            }
-        }
-        return goalsListEle = 0;
-    }, [sidebarSelection]);
+    // useEffect(() => {
+    //     if (sidebarSelection === 'dashboard') {
+    //         goalsListEle = document.getElementById("goalsList");
+    //         setGoalScroll(goalsListEle.scrollTop);
+    //         console.log(`Set goalscroll to ${goalScroll}`)
+    //         // console.log(`Scrollheight of goalslist is ${goalsListEle.scrollHeight}`)
+    //         // console.log(`Client of goalslist is ${goalsListEle.clientHeight}`)
+
+    //     }
+    //     // return goalsListEle = 0;
+    // }, [sidebarSelection]);
+
+    // useEffect(() => {
+    //     console.log(`GOALSCROLL BE THUS: ${goalScroll}`)
+    //     if ((goalsListEle) && (goalsListEle.scrollHeight - Math.abs(goalScroll) === goalsListEle.clientHeight)) {
+    //         alert(`MORE CONTENT BELOW GOOD SIR OR MADAM`);
+    //         // Above essentially means "not scrolled all the way down"
+    //         // HERE: can go ahead and add a 'scroll down arrow' effect, theoretically...
+    //         // ... however, that arrow will currently just stay there, since we're listening for sidebarSelection, NOT current scrollheight
+    //     }
+    // }, [goalScroll]);
 
     return (
         <HomePageBackgroundContainer onClick={() => userModalVisible ? setUserModalVisible(false) : null}>
@@ -526,12 +541,12 @@ const HomePage = () => {
                                         Column down: buttons that lead to detail (and delete) page, progress OR done/undone for day, group/solo icon, name
                                     */}
 
-                                    <DashboardNarrowContainer id='goalsList' style={{flexDirection: 'column', position: 'relative', overflow: 'hidden'}}>
+                                    <DashboardNarrowContainer style={{flexDirection: 'column', position: 'relative', overflow: 'hidden'}}>
                                         <DashboardDate style={{alignSelf: 'flex-start'}}>
                                             <div>Goals for {dayNumberToWord(today.getDay()).slice(0,3).toUpperCase()} {today.getMonth() + 1}/{today.getDate()}/{`${today.getFullYear()}`.slice(2)}</div>
                                             <div style={{fontSize: '0.8em'}}>{todaysGoals.filter(goal => goal.complete).length}/{todaysGoals.length} done for the day!</div>
                                         </DashboardDate>
-                                        <div style={{overflow: 'scroll', width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
+                                        <div onScroll={handleGoalScroll} id='goalsList' style={{overflow: 'scroll', width: '100%', display: 'flex', alignItems: 'center', flexDirection: 'column'}}>
                                         {todaysGoals.map((goal,index) => (
                                             <DashboardGoalButton key={index} onClick={() => bustGoal(goal)}>
                                                 <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', width: 'calc(30px + 1vw)', height: 'calc(30px + 1vw)', backgroundColor: 'white', borderRadius: '1rem'}}>
@@ -563,7 +578,7 @@ const HomePage = () => {
                                         {state?.history[calcDayKey()]?.events?.length ? (
                                             <>
                                             {state.history[calcDayKey()].events.slice().reverse().map((historyItem, index) => (
-                                                <div key={index} style={{width: '100%', padding: '0.5rem', marginBottom: index === 0 ? '2rem' : '0.75rem', backgroundColor: index % 2 === 0 ? 'hsl(260,90%,80%)' : 'hsl(260,80%,90%)'}}>
+                                                <div key={index} style={{width: '100%', padding: '0.5rem', marginBottom: index === 0 ? '2rem' : '0.25rem', backgroundColor: index % 2 === 0 ? 'hsl(260,90%,80%)' : 'hsl(260,80%,90%)'}}>
                                                     <div style={{fontWeight: '600'}}>{calcTimestamp(new Date(historyItem.timestamp))}{index === 0 ? ` - Most Recent` : ``}</div>
                                                     <div>{historyItem.agent === state?.username ? 'You' : historyItem.agent} {historyItem.action}</div>
                                                 </div>

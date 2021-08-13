@@ -17,9 +17,9 @@ const GoalSchema = new Schema({
     creationDate: Date,
     startDate: Date,
     endDate: Date,
-    participants: Object, // Object with keys/properties that are the username(s) of the participants, pointing to an object that likely indicates editing power over the group (reference below)
+    participants: Object, // Object with keys that are the username(s) of the participants, pointing to an object that likely indicates editing power over the group (reference below)
     observers: Object,
-    history: Object,
+    history: {type: Object, default: {}},
     // goalRules: Object,
     
     chatLog: Array
