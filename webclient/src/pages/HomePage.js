@@ -93,6 +93,7 @@ const HomePage = () => {
     const [allGoalsArray, setAllGoalsArray] = useState([]);
     const [goalToBust, setGoalToBust] = useState();
     const [goalToCompare, setGoalToCompare] = useState({});
+    const [goalToView, setGoalToView] = useState();
     const [newFriendRequests, setNewFriendRequests] = useState(0);
     // ... just realized the above is ALL goals, not today's goals only; whoops.
     const [newGoal, setNewGoal] = useState({
@@ -118,8 +119,18 @@ const HomePage = () => {
     function bustGoal(goal) {
         setGoalToCompare(goal);
         setGoalToBust(goal);
-        console.log('Time to bust! ' + JSON.stringify(goal))
+        // console.log('Time to bust! ' + JSON.stringify(goal))
         setSidebarSelection('bustGoal');
+    }
+
+    function viewGoal(goal) {
+        // NOTE: this is the same mechanism that viewing SEARCHED goals will have, so be sure to attach info on backend
+        //          such as joinable: T/F (for the given user)
+
+        dispatch({type: actions.SEND_DATA, payload: {requestType: 'retrieve_goal_details', goalID: goal.id}});        
+
+        // setSidebarSelection('viewGoal');
+        // setGoalToView(goal);
     }
 
     function handleGoalUpdate() {
@@ -442,10 +453,17 @@ const HomePage = () => {
     }, [state.friends]);
 
     useEffect(() => {
+        // should probably clear out dataToReceive upon unpacking
+        // could also have a 'whatDo' update via context (from server or contextually from received data) trigger sidebarSelection switch, if it feels clunky as-is
         if (state.dataToReceive) {
             switch (state.dataToReceive.dataType) {
                 case 'friend_search_result': {
                     setFriendsList(state.dataToReceive.payload);
+                    return dispatch({type: actions.RECEIVE_DATA});
+                }
+                case 'goal_details': {
+                    setGoalToView(state.dataToReceive.payload);
+                    return dispatch({type: actions.RECEIVE_DATA});
                 }
             }
         }
@@ -670,12 +688,12 @@ const HomePage = () => {
 
                                     <GoalInputContainer style={{width: '100%'}}>
                                         <GoalInputLabel>Notes</GoalInputLabel>
-                                        <GroupInfoInput type='text' style={{width: '70%'}} value={goalToBust?.notes} onChange={e => setGoalToBust({...goalToBust, notes: e.target.value})}></GroupInfoInput>
+                                        <GroupInfoInput type='text' style={{width: '70%'}} value={goalToBust?.notes || ''} onChange={e => setGoalToBust({...goalToBust, notes: e.target.value})}></GroupInfoInput>
                                     </GoalInputContainer>
 
                                     
 
-                                    <GoalButton style={{marginLeft: '1rem'}} onClick={handleGoalUpdate}>{(goalToBust?.notes === goalToCompare?.notes && goalToBust?.dailyTargetUnitsDone === goalToCompare?.dailyTargetUnitsDone) ? `Back` : `UPDATE!`}</GoalButton>
+                                    <GoalButton style={{marginLeft: '1rem'}} type='submit' onClick={handleGoalUpdate}>{(!goalToBust?.notes || goalToBust?.dailyTargetUnitsDone === goalToCompare?.dailyTargetUnitsDone) ? `Back` : `UPDATE!`}</GoalButton>
                                 </GoalsListContainer>
 
                                 {/* <div>{goalToBust.dateKey || `No date key detected`}</div> */}
@@ -728,7 +746,7 @@ const HomePage = () => {
                                 <GoalsListContainer>
                                     <div style={{width: '100%', paddingLeft: '1rem', fontSize: 'calc(0.8rem + 0.3vw)', fontWeight: '600', letterSpacing: '0.7px'}}>My Goal Projects (Click to View or Edit Project Details)</div>
                                     {allGoalsArray?.slice(((goalPage - 1) * 10), ((goalPage - 1) * 10 + 10)).map((goal, index) => (
-                                        <GoalCardContainer key={index} goal={goal} />
+                                        <GoalCardContainer key={index} goal={goal} viewGoal={viewGoal} />
                                     ))}
                                     {Object.keys(state.goals).length === 0 && (
                                         <h3>You haven't defined or joined any GoalBuster projects yet! Create a new goal with the button above.</h3>
@@ -748,6 +766,62 @@ const HomePage = () => {
                                 NOTE: we run outta room REAL quick on small screens, so account for that
                             BELOW: Little cards with all goals (left-to-right, flex-wrapping)
                         */}
+
+
+
+                        {/* VGTAB */}
+                        {sidebarSelection === 'viewGoal' && (
+                            <div style={{width: '100%', height: 'auto', overflow: 'scroll', display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                                <DashboardRowOne style={{display: 'flex', justifyContent: 'space-around', height: '100px'}}>
+                                    <DashboardNarrowContainer style={{justifyContent: 'space-around', alignItems: 'center'}}>
+                                        <div style={{display: 'flex', fontSize: 'calc(2rem + 1vw)'}}>
+                                            {goalToView.name}
+                                        </div>
+                                    </DashboardNarrowContainer>
+                                </DashboardRowOne>
+                                
+                                <GoalsListContainer style={{flexDirection: 'column', alignItems: 'flex-start', padding: '2rem'}}>
+                                    <div>Tra la la</div>
+                                </GoalsListContainer>
+
+                                {/* <div>{goalToBust.dateKey || `No date key detected`}</div> */}
+                                
+                            </div>
+                        )}
+
+                        {/* 
+                            VIEWGOAL PAGE
+
+                            OBJECT IN QUESTION (might) INCLUDE:
+                                name: {type: String, required: true},
+                                description: String,
+                                groupRule: String,
+                                logo: String,
+                                colorScheme: String,
+                                goalPic: String,
+                                weekDays: Object, ... {mon: Boolean, tue: Boolean} etc.
+                                privacyLevel: {type: Number, default: 0}, ... this currently doesn't apply, but 'easily' could
+                                activityName: String,
+                                dailyTargetUnits: String,
+                                dailyTargetNumber: Number,
+                                creationDate: Date,
+                                startDate: Date,
+                                endDate: Date,
+                                participants: Object, // Object with keys that are the username(s) of the participants, pointing to an object that likely indicates editing power over the group (reference below)
+                                observers: Object, // Doesn't currently apply, but could in the future
+                                history: {type: Object, default: {}}, ... history[XX/YY/ZZZZ] = {events: [], participants: {BOB: {username: BOB, goalObj: {...goalObj}}}}
+                                
+                                
+                                chatLog: Array
+                            
+                            ... to ensure all of this, we actually have to make a grab at the backend, as we're currently just passing in the 'personal copy' of
+                                the goal, which doesn't have all of the relevant variables.
+                                          
+
+                        */}
+
+
+
 
                         {/* NGTAB */}
                         {sidebarSelection === 'createGoal' && (
@@ -814,7 +888,7 @@ const HomePage = () => {
                                     </GoalInputContainer>
 
                                     <GoalInputContainer>
-                                        <GoalInputLabel>{newGoal.groupRule === 'solo' ? `Goal Visibility (Who Can View)` : `Goal Joining (Who Can Join)`}</GoalInputLabel>
+                                        <GoalInputLabel>{newGoal.groupRule === 'solo' ? `Goal Visibility (Who Can View)` : `Goal Joining (Who Can Search & Join)`}</GoalInputLabel>
                                         <GoalButton style={{width: '9vw', height: '50px'}} onClick={() => setNewGoal({...newGoal, privacyLevel: 0})} selected={newGoal.privacyLevel === 0} barButton leftSide>Any User</GoalButton>
                                         <GoalButton style={{width: '9vw', height: '50px'}} onClick={() => setNewGoal({...newGoal, privacyLevel: 1})} selected={newGoal.privacyLevel === 1} barButton>Only Friends</GoalButton>
                                         <GoalButton style={{width: '9vw', height: '50px'}} onClick={() => setNewGoal({...newGoal, privacyLevel: 2})} selected={newGoal.privacyLevel === 2} barButton rightSide>Only Me</GoalButton>
@@ -968,20 +1042,23 @@ const HomePage = () => {
 }
 
 
-const GoalCardContainer = ({ goal }) => {
+const GoalCardContainer = ({ goal, viewGoal }) => {
     /*
         OK! Let's format these bad boys and girls and genderless components!
 
-        -- goal.name, front-and-center(ed?)
-        -- solo-or-group
-        -- micro days indicator would be cool
+        -- getting there, but does NOT scale well, soooo maybe make bigger cards like the Friends cards to fit everything on properly
 
         -- icon? ... eh, not yet
         -- maybe later on, 'include old/completed goals'
         -- or even 'include goals for THE FUUUUTURE' ... in the future
     */
+
+    function viewGoalDetails() {
+        viewGoal(goal);
+    }
+
     return (
-        <GoalCard onClick={() => alert(`You booped ${goal.name}!`)}>
+        <GoalCard onClick={viewGoalDetails}>
             <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', boxSizing: 'border-box'}}>
                 <img style={{width: '20%'}} src={goal.groupRule === 'solo' ? soloSVG : groupSVG} />
                 <div style={{display: 'flex'}}>{goal.name}</div>

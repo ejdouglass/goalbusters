@@ -106,12 +106,12 @@ function saveUser(user) {
 function saveGoal(goal) {
     // ok, we're receiving a single PARTICIPANT'S actions in this case... so what do we need to do?
     // retrieve, patch, then update?
-    const filter = { _id: user.username };
-    const update = { $set: user };
+    const filter = { _id: goal._id };
+    const update = { $set: goal };
     const options = { new: true, useFindAndModify: false };
-    User.findOneAndUpdate(filter, update, options)
+    Goal.findOneAndUpdate(filter, update, options)
         .then(updatedResult => {
-            console.log(`${updatedResult.username} has been updated.`);
+            console.log(`${updatedResult.name} has been updated.`);
         })
         .catch(err => {
             console.log(`We encountered an error saving the user whilst adding a new goal: ${err}.`);
@@ -307,8 +307,8 @@ io.on('connection', (socket) => {
             }
             case 'update_daily_goal': {
                 // TO ADD: properly updating the actual Goal on backend, which will enable proper multi-user participation support
-                // ADJUST: remove goalObj.notes here; have it reset each time in the client, as well
                 const goalObj = dataFromClient.finalizedGoalObj;
+                delete goalObj.notes;
                 const eventObj = dataFromClient.eventObj;
                 goalObj.events.push(eventObj);
                 console.log(`The user has entered a new goal for ${goalObj.dateKey}: ${JSON.stringify(goalObj)}`);
@@ -316,33 +316,49 @@ io.on('connection', (socket) => {
                 thisUser.history[goalObj.dateKey].goals[goalObj.id] = {...goalObj};
                 thisUser.history[goalObj.dateKey].events.push(eventObj);
                 saveUser(thisUser);
-                Goal.findOne({ _id: goalID })
-                .then(updateGoal => {
-                    if (updateGoal.history === undefined) updateGoal.history = {};
-                    if (updateGoal.history[goalObj.dateKey] === undefined) updateGoal.history[goalObj.dateKey] = {events: [], participants: {}};
-                    updateGoal.history[goalObj.dateKey].events.push(eventObj);
-                    if (updateGoal.history[goalObj.dateKey].participants[thisUser.username] === undefined) updateGoal.history[goalObj.dateKey].participants[thisUser.username] = {username: thisUser.username};
-                    updateGoal.history[goalObj.dateKey].participants[thisUser.username].goalObj = goalObj;                    
-                    // HERE: saveGoal
-                })
-                .catch(err => {
-                    console.log(err);
-                    // res.json({type: `failure`, echo: JSON.stringify(err)});
-                });
+                Goal.findOne({ _id: goalObj.id })
+                    .then(updateGoal => {
+                        if (updateGoal.history === undefined) updateGoal.history = {};
+                        if (updateGoal.history[goalObj.dateKey] === undefined) updateGoal.history[goalObj.dateKey] = {events: [], participants: {}};
+                        updateGoal.history[goalObj.dateKey].events.push(eventObj);
+                        if (updateGoal.history[goalObj.dateKey].participants[thisUser.username] === undefined) updateGoal.history[goalObj.dateKey].participants[thisUser.username] = {username: thisUser.username};
+                        updateGoal.history[goalObj.dateKey].participants[thisUser.username].goalObj = goalObj;                    
+                        saveGoal(updateGoal);
+                    })
+                    .catch(err => {
+                        console.log(err);
+                        // res.json({type: `failure`, echo: JSON.stringify(err)});
+                    });
                 
-                // hm, HISTORY for a goal will look a bit different... history[DATEKEY] = {events: [], participants: {}}; participants instead of goals
-                // participants obj = BOB: {username: BOB, goalObj: BOBSGOALOBJHERE}
-                // that should preserve all the individual actions of each individual in a group goal
-
-
-                // here: saveGoal... figure out what goalObj has in it so we can pass properly (looks like we have id, which is very helpful)
 
                 // we have the id, we have the participant in thisUser.username, we have the goalObj.dateKey, and goalObj itself (that day's done-ness of goal)
-                // GOAL has a history as well, so essentially we want to LOAD the full goal, plug in the proper history, and ride
                 
                 // HERE: If Group Goal, push to everyone's history appropriately via usernames array
+
+
+
                 io.to(thisUser.username).emit('data_from_server', {dataType: `update_user`, payload: thisUser});
                 return io.to(thisUser.username).emit('data_from_server', {dataType: `alert`, payload: {type: 'confirmation', message: `You have updated ${goalObj.name}!`, id: Math.random().toString(36).replace('0.', '')}, echo: ``});
+            }
+            case 'retrieve_goal_details': {
+                // thisUser.username can be used to check access, if necessary
+                // be sure to attach joinable: t/f, and any other attributes that could be useful for the client to work with (such as for joining group goals)
+                // gonna have to throw a useEffect listener in HomePage for the received goal to be 'heard' and unpacked as we hop to Goal Viewing
+
+                // BELOW: be sure to adjust details such as joinability that are USER-SPECIFIC for the requesting client
+
+                Goal.findOne({ _id: dataFromClient.goalID })
+                    .then(fetchedGoalObj => {
+                        // do stuff/io here
+                        // basically want to pass all relevant GOAL attributes down to user so they can view the details of same
+
+                        io.to(thisUser.username).emit('data_from_server', {dataType: 'goal_details', payload: fetchedGoalObj});
+                        // HERE: io.to(thisUser.username).emit data_from_server; dataType: 'goal_details' (can make new receiving type)
+                        //      -- flow: console/keyboard socket-receives and unpacks to state; HomePage sees state.dataToReceive and checks contents, processes appropriately, and clears dataToReceive
+                    })
+                    .catch(err => console.log(`An error occurred while the user ${thisUser.username} was attempting to fetch a goal's information: ${err}`));
+
+                return;
             }
             case 'populate_daily_goals': {
                 // should prooobably do this on the backend, not the frontend, juuuust in case

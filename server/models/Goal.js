@@ -29,6 +29,10 @@ module.exports = mongoose.model('Goal', GoalSchema);
 
 /*
 
+    hm, HISTORY for a goal will look a bit different... history[DATEKEY] = {events: [], participants: {}}; participants instead of goals
+    participants obj = BOB: {username: BOB, goalObj: BOBSGOALOBJHERE}
+    that should preserve all the individual actions of each individual in a group goal
+
     const [newGoal, setNewGoal] = useState({
         name: '',
         description: '',

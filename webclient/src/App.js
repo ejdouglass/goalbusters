@@ -36,12 +36,16 @@ export default App;
 
   FRESH THOUGHT FINISHERS
   ... the adjustments are good and all, but let's de-emphasize aesthetic twiddling and up-emphasize core functionality
-  ::: GOALS ON BACKEND HAVING THEIR OWN HISTORY - this will allow detailed viewing of goals for GeneralHistory
-  ::: VIEW GOALS (evolving goals is a separate, maybe-later concern)... HOWEVER! Removing participants as admin of a goal might be fine.
+  [x] GOALS ON BACKEND HAVING THEIR OWN HISTORY - this will allow detailed viewing of goals for GeneralHistory
+
+  ::: VIEW (not edit) GOALS (evolving goals is a separate, maybe-later concern)... HOWEVER! Removing participants/banning participants as admin of a goal might be fine.
+
   ::: GOAL SEARCH - 'detaching' goals from a given user, GROUP GOALS can become super universal, but need to be searchable in this case
-    > maybe a GROUP GOAL creation can be a bit more editable and making one pops you on the edit-details page instead vs a solo project
+    > maybe a GROUP GOAL creation can be a bit more editable and making one pops you on the edit-details page instead vs a solo project (searchable tags, etc.)
+    > so SOLO goals are personal and viewable by friends on your profile maybe, and GROUP goals can be independently searched
   ::: HISTORY PAGE - be able to populate any given day when heading to the page to see details for that day as well as for the week (and maybe lifespan for specific goals)
     > need to separate GeneralHistory and (Specific)GoalHistory?
+    > can springboard off of the "weekly bar" on the bottom of Dashboard
   ::: VIEW OTHER PERSON'S PROFILE - decide briefly on what should be 'visible' (based on privacy)
     > 'back' button in this case should
   ::: SETTINGS/PREFERENCES - privacy default, icon selection, delete account
@@ -113,7 +117,7 @@ export default App;
   -- Have booping goal cards lead to VIEW/EDIT
     > goal.participants[usernameX] = {joinTime: ..., privilegeLevel: 'admin'}
   -- Add a "goal summary" on the top for at-a-glance goodness; scoot project name down into the 'set stuff up' sxn
-  -- Change "CreateGoal" on the top to be... spacious :P
+  -- Change "CreateGoal" on the top to be... spacious :P ... same with ViewGoal
   ~~ Consider visually highlighting the 'stuff you need to select' and have them be 'happy color' when done
   ..
   [x] New idea: slap separate buttons on the bottom for "All" "Reset to 0" "MWF" "TuTh" "Weekends" shortcut buttons  
